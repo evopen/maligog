@@ -3,6 +3,10 @@ name = "maligog"
 version = "0.1.0"
 authors = ["evopen <520dhh@gmail.com>"]
 edition = "2018"
+description = "A safe wrapper for Vulkan API"
+license = "MIT"
+repository = "https://github.com/evopen/maligog"
+keywords = ["vulkan"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
