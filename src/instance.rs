@@ -1,20 +1,22 @@
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::sync::Arc;
 
-use ash::version::{EntryV1_0, InstanceV1_0};
+use ash::version::{EntryV1_0, InstanceV1_0, InstanceV1_1};
 use ash::vk;
 
-use crate::entry::Entry;
+use crate::physical_device::PhysicalDevice;
 
+use crate::entry::Entry;
 use crate::name;
+use crate::queue_family::QueueFamily;
 
 pub struct Instance {
-    handle: ash::Instance,
+    pub(crate) handle: ash::Instance,
     entry: Arc<Entry>,
     enabled_layers: Vec<name::instance::Layer>,
     enabled_extensions: Vec<name::instance::Extension>,
-    surface_loader: ash::extensions::khr::Surface,
-    debug_utils_loader: ash::extensions::ext::DebugUtils,
+    surface_loader: Option<ash::extensions::khr::Surface>,
+    debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
     display_loader: ash::extensions::khr::Display,
 }
 
@@ -72,9 +74,19 @@ impl Instance {
             .enabled_extension_names(&extension_names_raw);
         let handle = unsafe { entry.handle.create_instance(&create_info, None).unwrap() };
 
-        let surface_loader = ash::extensions::khr::Surface::new(&entry.handle, &handle);
+        let surface_loader = match extensions.contains(&name::instance::Extension::KhrSurface) {
+            true => Some(ash::extensions::khr::Surface::new(&entry.handle, &handle)),
+            false => None,
+        };
 
-        let debug_utils_loader = ash::extensions::ext::DebugUtils::new(&entry.handle, &handle);
+        let debug_utils_loader =
+            match extensions.contains(&name::instance::Extension::ExtDebugUtils) {
+                true => Some(ash::extensions::ext::DebugUtils::new(
+                    &entry.handle,
+                    &handle,
+                )),
+                false => None,
+            };
 
         let display_loader = ash::extensions::khr::Display::new(&entry.handle, &handle);
 
@@ -90,6 +102,69 @@ impl Instance {
 
         result
     }
+
+    pub fn enumerate_physical_device(self: &Arc<Self>) -> Vec<PhysicalDevice> {
+        unsafe {
+            let pdevices = self.handle.enumerate_physical_devices().unwrap();
+
+            pdevices
+                .iter()
+                .map(|pdevice| {
+                    let props = self.handle.get_physical_device_properties(*pdevice);
+                    let mut props2 = vk::PhysicalDeviceRayTracingPipelinePropertiesKHR::default();
+                    self.handle.get_physical_device_properties2(
+                        *pdevice,
+                        &mut vk::PhysicalDeviceProperties2::builder()
+                            .push_next(&mut props2)
+                            .build(),
+                    );
+                    let ray_tracing_pipeline_properties =
+                        crate::physical_device::PhysicalDeviceRayTracingPipelineProperties {
+                            shader_group_handle_size: props2.shader_group_handle_size,
+                            max_ray_recursion_depth: props2.max_ray_recursion_depth,
+                            max_shader_group_stride: props2.max_shader_group_stride,
+                            shader_group_base_alignment: props2.shader_group_base_alignment,
+                            max_ray_dispatch_invocation_count: props2
+                                .max_ray_dispatch_invocation_count,
+                            shader_group_handle_alignment: props2.shader_group_handle_alignment,
+                            max_ray_hit_attribute_size: props2.max_ray_hit_attribute_size,
+                        };
+
+                    let queue_families = self
+                        .handle
+                        .get_physical_device_queue_family_properties(*pdevice)
+                        .into_iter()
+                        .enumerate()
+                        .map(|(index, properties)| QueueFamily {
+                            index: index as u32,
+                            support_graphics: properties
+                                .queue_flags
+                                .contains(vk::QueueFlags::GRAPHICS),
+                            support_compute: properties
+                                .queue_flags
+                                .contains(vk::QueueFlags::COMPUTE),
+                            support_transfer: properties
+                                .queue_flags
+                                .contains(vk::QueueFlags::TRANSFER),
+                            count: properties.queue_count,
+                        })
+                        .collect();
+
+                    PhysicalDevice {
+                        name: CStr::from_ptr(props.device_name.as_ptr())
+                            .to_str()
+                            .unwrap()
+                            .to_owned(),
+                        device_type: props.device_type,
+                        handle: *pdevice,
+                        instance: self.clone(),
+                        ray_tracing_pipeline_properties,
+                        queue_families,
+                    }
+                })
+                .collect()
+        }
+    }
 }
 
 impl Drop for Instance {
@@ -98,4 +173,42 @@ impl Drop for Instance {
             self.handle.destroy_instance(None);
         }
     }
+}
+
+#[test]
+fn test_enumerate() {
+    let entry = Entry::new().unwrap();
+    let instance = entry.create_instance(&[], &[]);
+    let pdevices = instance.enumerate_physical_device();
+    dbg!(&pdevices);
+    let _pdevice = instance
+        .enumerate_physical_device()
+        .iter()
+        .find(|p| {
+            p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
+                && p.queue_families
+                    .iter()
+                    .find(|f| f.support_compute() && f.support_graphics())
+                    .is_some()
+        })
+        .unwrap();
+}
+
+#[test]
+fn test_create_device() {
+    let entry = Entry::new().unwrap();
+    let instance = entry.create_instance(&[], &[]);
+    let pdevices = instance.enumerate_physical_device();
+    dbg!(&pdevices);
+    let _pdevice = instance
+        .enumerate_physical_device()
+        .iter()
+        .find(|p| {
+            p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
+                && p.queue_families
+                    .iter()
+                    .find(|f| f.support_compute() && f.support_graphics())
+                    .is_some()
+        })
+        .unwrap();
 }

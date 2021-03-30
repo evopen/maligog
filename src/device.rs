@@ -1,0 +1,161 @@
+use std::ffi::CString;
+use std::sync::Arc;
+
+use ash::version::{DeviceV1_0, InstanceV1_0};
+use ash::vk;
+
+use crate::instance::Instance;
+use crate::name;
+use crate::physical_device::PhysicalDevice;
+use crate::queue_family::QueueFamily;
+
+pub struct DeviceFeatures {}
+
+pub struct Device {
+    handle: ash::Device,
+    pdevice: Arc<PhysicalDevice>,
+    acceleration_structure_loader: ash::extensions::khr::AccelerationStructure,
+    swapchain_loader: ash::extensions::khr::Swapchain,
+    ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
+    allocator: vk_mem::Allocator,
+}
+
+impl Device {
+    pub(crate) fn new(
+        instance: Arc<Instance>,
+        pdevice: Arc<PhysicalDevice>,
+        device_features: &DeviceFeatures,
+        device_extensions: &[name::device::Extension],
+        queues: &[(&QueueFamily, &[f32])],
+    ) -> Self {
+        unsafe {
+            let mut queue_infos = Vec::new();
+            for (family, priorities) in queues {
+                queue_infos.push(
+                    vk::DeviceQueueCreateInfo::builder()
+                        .queue_family_index(family.index)
+                        .queue_priorities(&priorities)
+                        .build(),
+                )
+            }
+
+            let device_extension_names = device_extensions
+                .iter()
+                .map(|extension| CString::new(extension.as_ref()).unwrap())
+                .collect::<Vec<_>>();
+            let device_extension_names_raw: Vec<*const i8> = device_extension_names
+                .iter()
+                .map(|raw_name| raw_name.as_ptr())
+                .collect();
+
+            let mut ray_tracing_pipeline_pnext =
+                vk::PhysicalDeviceRayTracingPipelineFeaturesKHR::builder()
+                    .ray_tracing_pipeline(true)
+                    .build();
+            let mut acceleration_structure_pnext =
+                vk::PhysicalDeviceAccelerationStructureFeaturesKHR::builder()
+                    .acceleration_structure(true)
+                    .build();
+            let mut ray_query_pnext = vk::PhysicalDeviceRayQueryFeaturesKHR::builder()
+                .ray_query(true)
+                .build();
+            let mut device_buffer_address_pnext =
+                vk::PhysicalDeviceBufferDeviceAddressFeatures::builder()
+                    .buffer_device_address(true)
+                    .build();
+            let mut fea_16_bit_storage_pnext = vk::PhysicalDevice16BitStorageFeatures::builder()
+                .uniform_and_storage_buffer16_bit_access(true)
+                .storage_buffer16_bit_access(true)
+                .storage_input_output16(false)
+                .storage_push_constant16(true)
+                .build();
+            let mut scalar_block_layout_pnext =
+                vk::PhysicalDeviceScalarBlockLayoutFeatures::builder()
+                    .scalar_block_layout(true)
+                    .build();
+
+            let vk_device_features = vk::PhysicalDeviceFeatures {
+                ..Default::default()
+            };
+
+            let mut device_create_info = vk::DeviceCreateInfo::builder()
+                .queue_create_infos(&queue_infos)
+                .enabled_extension_names(&device_extension_names_raw)
+                .enabled_features(&vk_device_features);
+
+            device_create_info =
+                if device_extensions.contains(&name::device::Extension::KhrRayTracingPipeline) {
+                    device_create_info.push_next(&mut ray_tracing_pipeline_pnext)
+                } else {
+                    device_create_info
+                };
+            device_create_info =
+                if device_extensions.contains(&name::device::Extension::KhrRayQuery) {
+                    device_create_info.push_next(&mut ray_query_pnext)
+                } else {
+                    device_create_info
+                };
+            device_create_info =
+                if device_extensions.contains(&name::device::Extension::KhrAccelerationStructure) {
+                    device_create_info.push_next(&mut acceleration_structure_pnext)
+                } else {
+                    device_create_info
+                };
+
+            device_create_info = device_create_info
+                .push_next(&mut device_buffer_address_pnext)
+                .push_next(&mut fea_16_bit_storage_pnext)
+                .push_next(&mut scalar_block_layout_pnext);
+
+            let handle = instance
+                .handle
+                .create_device(pdevice.handle, &device_create_info, None)
+                .unwrap();
+
+            let acceleration_structure_loader =
+                ash::extensions::khr::AccelerationStructure::new(&pdevice.instance.handle, &handle);
+
+            let swapchain_loader =
+                ash::extensions::khr::Swapchain::new(&pdevice.instance.handle, &handle);
+
+            let ray_tracing_pipeline_loader =
+                ash::extensions::khr::RayTracingPipeline::new(&pdevice.instance.handle, &handle);
+
+            let allocator = vk_mem::Allocator::new(&vk_mem::AllocatorCreateInfo {
+                physical_device: pdevice.handle,
+                device: handle.clone(),
+                instance: pdevice.instance.handle.clone(),
+                flags: vk_mem::AllocatorCreateFlags::from_bits_unchecked(0x0000_0020),
+                ..Default::default()
+            })
+            .unwrap();
+
+            Self {
+                handle,
+                pdevice,
+                acceleration_structure_loader,
+                swapchain_loader,
+                ray_tracing_pipeline_loader,
+                allocator,
+            }
+        }
+    }
+
+    pub fn pdevice(&self) -> &PhysicalDevice {
+        &self.pdevice
+    }
+
+    // pub fn create_buffer(size: I,
+    //     buffer_usage: vk::BufferUsageFlags,
+    //     memory_usage: vk_mem::MemoryUsage) -> {
+
+    //     }
+}
+
+impl Drop for Device {
+    fn drop(&mut self) {
+        unsafe {
+            self.handle.destroy_device(None);
+        }
+    }
+}

@@ -124,5 +124,5 @@ fn entry_test() {
     dbg!(entry.vulkan_loader_version());
     dbg!(entry.supported_instance_extensions());
     dbg!(entry.supported_instance_layers());
-    let instance = entry.create_instance(&[], &[]);
+    let _instance = entry.create_instance(&[], &[]);
 }
