@@ -31,11 +31,6 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
-      - name: Test all targets
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --all-targets
       - name: Test docs
         uses: actions-rs/cargo@v1
         with:
