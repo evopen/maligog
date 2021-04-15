@@ -16,7 +16,7 @@ pub struct Instance {
     enabled_layers: Vec<name::instance::Layer>,
     enabled_extensions: Vec<name::instance::Extension>,
     surface_loader: Option<ash::extensions::khr::Surface>,
-    debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
+    pub debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
     display_loader: ash::extensions::khr::Display,
 }
 

@@ -1,9 +1,13 @@
+use std::ffi::CString;
 use std::sync::Arc;
 
-use ash::vk;
+use ash::version::DeviceV1_2;
+use ash::vk::{self, Handle};
+
+use crate::device::Device;
 
 pub struct Buffer {
-    allocator: Arc<Allocator>,
+    device: Arc<Device>,
     handle: vk::Buffer,
     allocation: vk_mem::Allocation,
     mapped: std::sync::atomic::AtomicBool,
@@ -26,7 +30,7 @@ impl std::fmt::Debug for Buffer {
 impl Buffer {
     pub fn new<I>(
         name: Option<&str>,
-        allocator: Arc<Allocator>,
+        device: Arc<Device>,
         size: I,
         buffer_usage: vk::BufferUsageFlags,
         memory_usage: vk_mem::MemoryUsage,
@@ -34,14 +38,14 @@ impl Buffer {
     where
         I: num_traits::PrimInt,
     {
-        let (handle, allocation, allocation_info) = allocator
-            .handle
+        let (handle, allocation, allocation_info) = device
+            .allocator
             .create_buffer(
                 &vk::BufferCreateInfo::builder()
                     .usage(
                         buffer_usage
                             | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                            | vk::BufferUsageFlags::TRANSFER_DST,
+                            | vk::BufferUsageFlags::all(),
                     )
                     .size(size.to_u64().unwrap())
                     .build(),
@@ -52,13 +56,14 @@ impl Buffer {
             )
             .unwrap();
 
-        let device = &allocator.device;
         unsafe {
             if let Some(name) = name {
                 device
                     .pdevice
                     .instance
                     .debug_utils_loader
+                    .as_ref()
+                    .unwrap()
                     .debug_utils_set_object_name(
                         device.handle.handle(),
                         &vk::DebugUtilsObjectNameInfoEXT::builder()
@@ -69,24 +74,24 @@ impl Buffer {
                     )
                     .unwrap();
             }
-            let device_address = allocator.device.handle.get_buffer_device_address(
+            let device_address = device.handle.get_buffer_device_address(
                 &vk::BufferDeviceAddressInfo::builder()
                     .buffer(handle)
                     .build(),
             );
 
-            let property_flags = allocator
-                .handle
+            let property_flags = device
+                .allocator
                 .get_memory_type_properties(allocation_info.get_memory_type())
                 .unwrap();
 
             Self {
+                device,
                 handle,
                 allocation,
                 mapped: std::sync::atomic::AtomicBool::new(false),
                 device_address,
                 size: size.to_usize().unwrap(),
-                allocator,
                 allocation_info,
                 property_flags,
             }
@@ -95,15 +100,15 @@ impl Buffer {
 
     pub fn new_init_host<I: AsRef<[u8]>>(
         name: Option<&str>,
-        allocator: Arc<Allocator>,
+        device: Arc<Device>,
         buffer_usage: vk::BufferUsageFlags,
         memory_usage: vk_mem::MemoryUsage,
         data: I,
     ) -> Self {
         let data = data.as_ref();
-        let mut buffer = Self::new(
+        let buffer = Self::new(
             name,
-            allocator,
+            device,
             data.len(),
             buffer_usage
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
@@ -117,64 +122,64 @@ impl Buffer {
         buffer
     }
 
-    pub fn new_init_device<I: AsRef<[u8]>>(
-        name: Option<&str>,
-        allocator: Arc<Allocator>,
-        buffer_usage: vk::BufferUsageFlags,
-        memory_usage: vk_mem::MemoryUsage,
-        queue: &mut Queue,
-        command_pool: Arc<CommandPool>,
-        data: I,
-    ) -> Self {
-        let data = data.as_ref();
-        let buffer = Self::new(
-            name,
-            allocator.clone(),
-            data.len(),
-            buffer_usage
-                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                | vk::BufferUsageFlags::TRANSFER_DST,
-            memory_usage,
-        );
-        if !buffer.is_mappable() {
-            let staging_buffer = Arc::new(Self::new(
-                Some("staging buffer"),
-                allocator.clone(),
-                data.len(),
-                vk::BufferUsageFlags::TRANSFER_SRC,
-                vk_mem::MemoryUsage::CpuToGpu,
-            ));
-            staging_buffer.copy_from(data);
-            let mut cmd_buf = CommandBuffer::new(command_pool);
-            cmd_buf.encode(|manager| unsafe {
-                manager.copy_buffer_raw(
-                    &staging_buffer,
-                    &buffer,
-                    &[vk::BufferCopy::builder().size(data.len() as u64).build()],
-                );
-            });
-            let timeline_semaphore = TimelineSemaphore::new(allocator.device.clone());
-            queue.submit_timeline(
-                cmd_buf,
-                &[&timeline_semaphore],
-                &[0],
-                &[vk::PipelineStageFlags::ALL_COMMANDS],
-                &[1],
-            );
-            timeline_semaphore.wait_for(1);
-        } else {
-            buffer.copy_from(data);
-            buffer.flush();
-        }
-        buffer
-    }
+    // pub fn new_init_device<I: AsRef<[u8]>>(
+    //     name: Option<&str>,
+    //     device: Arc<Device>,
+    //     buffer_usage: vk::BufferUsageFlags,
+    //     memory_usage: vk_mem::MemoryUsage,
+    //     queue: &mut Queue,
+    //     command_pool: Arc<CommandPool>,
+    //     data: I,
+    // ) -> Self {
+    //     let data = data.as_ref();
+    //     let buffer = Self::new(
+    //         name,
+    //         allocator.clone(),
+    //         data.len(),
+    //         buffer_usage
+    //             | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+    //             | vk::BufferUsageFlags::TRANSFER_DST,
+    //         memory_usage,
+    //     );
+    //     if !buffer.is_mappable() {
+    //         let staging_buffer = Arc::new(Self::new(
+    //             Some("staging buffer"),
+    //             allocator.clone(),
+    //             data.len(),
+    //             vk::BufferUsageFlags::TRANSFER_SRC,
+    //             vk_mem::MemoryUsage::CpuToGpu,
+    //         ));
+    //         staging_buffer.copy_from(data);
+    //         let mut cmd_buf = CommandBuffer::new(command_pool);
+    //         cmd_buf.encode(|manager| unsafe {
+    //             manager.copy_buffer_raw(
+    //                 &staging_buffer,
+    //                 &buffer,
+    //                 &[vk::BufferCopy::builder().size(data.len() as u64).build()],
+    //             );
+    //         });
+    //         let timeline_semaphore = TimelineSemaphore::new(allocator.device.clone());
+    //         queue.submit_timeline(
+    //             cmd_buf,
+    //             &[&timeline_semaphore],
+    //             &[0],
+    //             &[vk::PipelineStageFlags::ALL_COMMANDS],
+    //             &[1],
+    //         );
+    //         timeline_semaphore.wait_for(1);
+    //     } else {
+    //         buffer.copy_from(data);
+    //         buffer.flush();
+    //     }
+    //     buffer
+    // }
 
     pub fn map(&self) -> *mut u8 {
         if !self.is_mappable() {
             panic!("memory is not host visible");
         }
 
-        let ptr = self.allocator.handle.map_memory(&self.allocation).unwrap();
+        let ptr = self.device.allocator.map_memory(&self.allocation).unwrap();
         self.mapped
             .compare_exchange(
                 false,
@@ -195,7 +200,7 @@ impl Buffer {
                 std::sync::atomic::Ordering::SeqCst,
             )
             .expect("not mapped");
-        self.allocator.handle.unmap_memory(&self.allocation);
+        self.device.allocator.unmap_memory(&self.allocation);
     }
 
     pub fn memory_type(&self) -> u32 {
@@ -229,8 +234,8 @@ impl Buffer {
     }
 
     pub fn flush(&self) {
-        self.allocator
-            .handle
+        self.device
+            .allocator
             .flush_allocation(&self.allocation, 0, vk::WHOLE_SIZE as usize);
     }
 }
@@ -240,8 +245,43 @@ impl Drop for Buffer {
         if self.mapped.load(std::sync::atomic::Ordering::SeqCst) {
             self.unmap();
         }
-        self.allocator
-            .handle
+        self.device
+            .allocator
             .destroy_buffer(self.handle, &self.allocation);
     }
+}
+
+#[test]
+fn test_create_buffer() {
+    use crate::entry::Entry;
+
+    let entry = Entry::new().unwrap();
+    let instance = entry.create_instance(&[], &[]);
+    let pdevices = instance.enumerate_physical_device();
+    dbg!(&pdevices);
+
+    let pdevice = instance
+        .enumerate_physical_device()
+        .into_iter()
+        .find(|p| {
+            p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
+                && p.queue_families
+                    .iter()
+                    .find(|f| f.support_compute() && f.support_graphics())
+                    .is_some()
+        })
+        .unwrap();
+    let pdevice = Arc::new(pdevice);
+    let queue_family = pdevice
+        .queue_families()
+        .iter()
+        .find(|f| f.support_graphics() && f.support_compute())
+        .unwrap();
+    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let _buffer = device.create_buffer(
+        None,
+        100,
+        vk::BufferUsageFlags::STORAGE_BUFFER,
+        vk_mem::MemoryUsage::GpuOnly,
+    );
 }

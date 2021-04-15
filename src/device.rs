@@ -4,6 +4,7 @@ use std::sync::Arc;
 use ash::version::{DeviceV1_0, InstanceV1_0};
 use ash::vk;
 
+use crate::buffer::Buffer;
 use crate::instance::Instance;
 use crate::name;
 use crate::physical_device::PhysicalDevice;
@@ -12,12 +13,12 @@ use crate::queue_family::QueueFamily;
 pub struct DeviceFeatures {}
 
 pub struct Device {
-    handle: ash::Device,
-    pdevice: Arc<PhysicalDevice>,
+    pub handle: ash::Device,
+    pub pdevice: Arc<PhysicalDevice>,
     acceleration_structure_loader: ash::extensions::khr::AccelerationStructure,
     swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
-    allocator: vk_mem::Allocator,
+    pub(crate) allocator: vk_mem::Allocator,
 }
 
 impl Device {
@@ -141,15 +142,24 @@ impl Device {
         }
     }
 
-    pub fn pdevice(&self) -> &PhysicalDevice {
-        &self.pdevice
+    pub fn create_buffer<I>(
+        self: &Arc<Self>,
+        name: Option<&str>,
+        size: I,
+        buffer_usage: vk::BufferUsageFlags,
+        memory_usage: vk_mem::MemoryUsage,
+    ) -> Arc<Buffer>
+    where
+        I: num_traits::PrimInt,
+    {
+        Arc::new(Buffer::new(
+            name,
+            self.clone(),
+            size,
+            buffer_usage,
+            memory_usage,
+        ))
     }
-
-    // pub fn create_buffer(size: I,
-    //     buffer_usage: vk::BufferUsageFlags,
-    //     memory_usage: vk_mem::MemoryUsage) -> {
-
-    //     }
 }
 
 impl Drop for Device {
