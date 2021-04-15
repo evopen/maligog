@@ -258,7 +258,6 @@ fn test_create_buffer() {
     let entry = Entry::new().unwrap();
     let instance = entry.create_instance(&[], &[]);
     let pdevices = instance.enumerate_physical_device();
-    dbg!(&pdevices);
 
     let pdevice = instance
         .enumerate_physical_device()
