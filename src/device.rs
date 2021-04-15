@@ -25,7 +25,7 @@ impl Device {
     pub(crate) fn new(
         instance: Arc<Instance>,
         pdevice: Arc<PhysicalDevice>,
-        device_features: &DeviceFeatures,
+        _device_features: &DeviceFeatures,
         device_extensions: &[name::device::Extension],
         queues: &[(&QueueFamily, &[f32])],
     ) -> Self {

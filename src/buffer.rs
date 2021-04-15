@@ -257,7 +257,7 @@ fn test_create_buffer() {
 
     let entry = Entry::new().unwrap();
     let instance = entry.create_instance(&[], &[]);
-    let pdevices = instance.enumerate_physical_device();
+    let _pdevices = instance.enumerate_physical_device();
 
     let pdevice = instance
         .enumerate_physical_device()
@@ -266,8 +266,7 @@ fn test_create_buffer() {
             p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
                 && p.queue_families
                     .iter()
-                    .find(|f| f.support_compute() && f.support_graphics())
-                    .is_some()
+                    .any(|f| f.support_compute() && f.support_graphics())
         })
         .unwrap();
     let pdevice = Arc::new(pdevice);

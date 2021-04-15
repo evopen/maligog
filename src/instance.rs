@@ -90,7 +90,7 @@ impl Instance {
 
         let display_loader = ash::extensions::khr::Display::new(&entry.handle, &handle);
 
-        let result = Self {
+        Self {
             handle,
             entry,
             surface_loader,
@@ -98,9 +98,7 @@ impl Instance {
             display_loader,
             enabled_layers: layers.to_vec(),
             enabled_extensions: extensions.to_vec(),
-        };
-
-        result
+        }
     }
 
     pub fn enumerate_physical_device(self: &Arc<Self>) -> Vec<PhysicalDevice> {
@@ -188,8 +186,7 @@ fn test_enumerate() {
             p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
                 && p.queue_families
                     .iter()
-                    .find(|f| f.support_compute() && f.support_graphics())
-                    .is_some()
+                    .any(|f| f.support_compute() && f.support_graphics())
         })
         .unwrap();
 }
@@ -207,8 +204,7 @@ fn test_create_device() {
             p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
                 && p.queue_families
                     .iter()
-                    .find(|f| f.support_compute() && f.support_graphics())
-                    .is_some()
+                    .any(|f| f.support_compute() && f.support_graphics())
         })
         .unwrap();
 }

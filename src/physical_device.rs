@@ -38,12 +38,10 @@ impl PhysicalDevice {
                 .unwrap()
                 .iter()
                 .map(|ext| {
-                    unsafe {
-                        CStr::from_ptr(ext.extension_name.as_ptr() as *const std::os::raw::c_char)
-                    }
-                    .to_str()
-                    .unwrap()
-                    .to_owned()
+                    CStr::from_ptr(ext.extension_name.as_ptr() as *const std::os::raw::c_char)
+                        .to_str()
+                        .unwrap()
+                        .to_owned()
                 })
                 .collect::<Vec<_>>()
         }
@@ -107,8 +105,7 @@ fn test_create_device() {
             p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
                 && p.queue_families
                     .iter()
-                    .find(|f| f.support_compute() && f.support_graphics())
-                    .is_some()
+                    .any(|f| f.support_compute() && f.support_graphics())
         })
         .unwrap();
     dbg!(pdevice.supported_device_extensions());
@@ -119,5 +116,5 @@ fn test_create_device() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let _device = pdevice.create_device(&[(&queue_family, &[1.0])]);
 }
