@@ -1,5 +1,7 @@
 use std::ffi::CString;
+use std::mem::ManuallyDrop;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use ash::version::{DeviceV1_0, InstanceV1_0};
 use ash::vk;
@@ -12,19 +14,24 @@ use crate::queue_family::QueueFamily;
 
 pub struct DeviceFeatures {}
 
-pub struct Device {
+pub(crate) struct DeviceRef {
     pub handle: ash::Device,
-    pub pdevice: Arc<PhysicalDevice>,
+    pub pdevice: PhysicalDevice,
     acceleration_structure_loader: ash::extensions::khr::AccelerationStructure,
     swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
-    pub(crate) allocator: vk_mem::Allocator,
+    pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
+}
+
+#[derive(Clone)]
+pub struct Device {
+    pub(crate) inner: Arc<DeviceRef>,
 }
 
 impl Device {
     pub(crate) fn new(
-        instance: Arc<Instance>,
-        pdevice: Arc<PhysicalDevice>,
+        instance: Instance,
+        pdevice: PhysicalDevice,
         _device_features: &DeviceFeatures,
         device_extensions: &[name::device::Extension],
         queues: &[(&QueueFamily, &[f32])],
@@ -109,62 +116,71 @@ impl Device {
                 .push_next(&mut scalar_block_layout_pnext);
 
             let handle = instance
+                .inner
                 .handle
                 .create_device(pdevice.handle, &device_create_info, None)
                 .unwrap();
 
-            let acceleration_structure_loader =
-                ash::extensions::khr::AccelerationStructure::new(&pdevice.instance.handle, &handle);
+            let acceleration_structure_loader = ash::extensions::khr::AccelerationStructure::new(
+                &pdevice.instance.inner.handle,
+                &handle,
+            );
 
             let swapchain_loader =
-                ash::extensions::khr::Swapchain::new(&pdevice.instance.handle, &handle);
+                ash::extensions::khr::Swapchain::new(&pdevice.instance.inner.handle, &handle);
 
-            let ray_tracing_pipeline_loader =
-                ash::extensions::khr::RayTracingPipeline::new(&pdevice.instance.handle, &handle);
+            let ray_tracing_pipeline_loader = ash::extensions::khr::RayTracingPipeline::new(
+                &pdevice.instance.inner.handle,
+                &handle,
+            );
 
-            let allocator = vk_mem::Allocator::new(&vk_mem::AllocatorCreateInfo {
-                physical_device: pdevice.handle,
-                device: handle.clone(),
-                instance: pdevice.instance.handle.clone(),
-                flags: vk_mem::AllocatorCreateFlags::from_bits_unchecked(0x0000_0020),
-                ..Default::default()
-            })
-            .unwrap();
+            let allocator =
+                gpu_allocator::VulkanAllocator::new(&gpu_allocator::VulkanAllocatorCreateDesc {
+                    instance: instance.inner.handle.clone(),
+                    device: handle.clone(),
+                    physical_device: pdevice.handle,
+                    debug_settings: gpu_allocator::AllocatorDebugSettings {
+                        log_memory_information: true,
+                        log_leaks_on_shutdown: true,
+                        store_stack_traces: true,
+                        log_allocations: true,
+                        log_frees: true,
+                        log_stack_traces: true,
+                    },
+                });
+            allocator.report_memory_leaks(log::Level::Trace);
 
             Self {
-                handle,
-                pdevice,
-                acceleration_structure_loader,
-                swapchain_loader,
-                ray_tracing_pipeline_loader,
-                allocator,
+                inner: Arc::new(DeviceRef {
+                    handle,
+                    pdevice,
+                    acceleration_structure_loader,
+                    swapchain_loader,
+                    ray_tracing_pipeline_loader,
+                    allocator: Mutex::new(ManuallyDrop::new(allocator)),
+                }),
             }
         }
     }
 
     pub fn create_buffer<I>(
-        self: &Arc<Self>,
+        &self,
         name: Option<&str>,
         size: I,
         buffer_usage: vk::BufferUsageFlags,
-        memory_usage: vk_mem::MemoryUsage,
-    ) -> Arc<Buffer>
+        location: gpu_allocator::MemoryLocation,
+    ) -> Buffer
     where
         I: num_traits::PrimInt,
     {
-        Arc::new(Buffer::new(
-            name,
-            self.clone(),
-            size,
-            buffer_usage,
-            memory_usage,
-        ))
+        Buffer::new(name, self.clone(), size, buffer_usage, location)
     }
 }
 
-impl Drop for Device {
+impl Drop for DeviceRef {
     fn drop(&mut self) {
         unsafe {
+            ManuallyDrop::drop(&mut self.allocator.lock().unwrap());
             self.handle.destroy_device(None);
         }
     }

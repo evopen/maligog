@@ -9,7 +9,7 @@ use std::ffi::CStr;
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PhysicalDeviceRayTracingPipelineProperties {
     pub shader_group_handle_size: u32,
     pub max_ray_recursion_depth: u32,
@@ -20,11 +20,12 @@ pub struct PhysicalDeviceRayTracingPipelineProperties {
     pub max_ray_hit_attribute_size: u32,
 }
 
+#[derive(Clone)]
 pub struct PhysicalDevice {
     pub(crate) name: String,
     pub(crate) device_type: vk::PhysicalDeviceType,
     pub(crate) handle: vk::PhysicalDevice,
-    pub(crate) instance: Arc<Instance>,
+    pub(crate) instance: Instance,
     pub(crate) ray_tracing_pipeline_properties: PhysicalDeviceRayTracingPipelineProperties,
     pub queue_families: Vec<QueueFamily>,
 }
@@ -33,6 +34,7 @@ impl PhysicalDevice {
     pub fn supported_device_extensions_raw(&self) -> Vec<String> {
         unsafe {
             self.instance
+                .inner
                 .handle
                 .enumerate_device_extension_properties(self.handle)
                 .unwrap()
@@ -57,7 +59,7 @@ impl PhysicalDevice {
             .collect::<Vec<_>>()
     }
 
-    pub fn create_device(self: &Arc<Self>, queues: &[(&QueueFamily, &[f32])]) -> Arc<Device> {
+    pub fn create_device(&self, queues: &[(&QueueFamily, &[f32])]) -> Arc<Device> {
         Arc::new(Device::new(
             self.instance.clone(),
             self.clone(),

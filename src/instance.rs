@@ -10,7 +10,7 @@ use crate::entry::Entry;
 use crate::name;
 use crate::queue_family::QueueFamily;
 
-pub struct Instance {
+pub(crate) struct InstanceRef {
     pub(crate) handle: ash::Instance,
     entry: Arc<Entry>,
     enabled_layers: Vec<name::instance::Layer>,
@@ -18,6 +18,11 @@ pub struct Instance {
     surface_loader: Option<ash::extensions::khr::Surface>,
     pub debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
     display_loader: ash::extensions::khr::Display,
+}
+
+#[derive(Clone)]
+pub struct Instance {
+    pub(crate) inner: Arc<InstanceRef>,
 }
 
 impl Instance {
@@ -91,26 +96,28 @@ impl Instance {
         let display_loader = ash::extensions::khr::Display::new(&entry.handle, &handle);
 
         Self {
-            handle,
-            entry,
-            surface_loader,
-            debug_utils_loader,
-            display_loader,
-            enabled_layers: layers.to_vec(),
-            enabled_extensions: extensions.to_vec(),
+            inner: Arc::new(InstanceRef {
+                handle,
+                entry,
+                surface_loader,
+                debug_utils_loader,
+                display_loader,
+                enabled_layers: layers.to_vec(),
+                enabled_extensions: extensions.to_vec(),
+            }),
         }
     }
 
-    pub fn enumerate_physical_device(self: &Arc<Self>) -> Vec<PhysicalDevice> {
+    pub fn enumerate_physical_device(&self) -> Vec<PhysicalDevice> {
         unsafe {
-            let pdevices = self.handle.enumerate_physical_devices().unwrap();
+            let pdevices = self.inner.handle.enumerate_physical_devices().unwrap();
 
             pdevices
                 .iter()
                 .map(|pdevice| {
-                    let props = self.handle.get_physical_device_properties(*pdevice);
+                    let props = self.inner.handle.get_physical_device_properties(*pdevice);
                     let mut props2 = vk::PhysicalDeviceRayTracingPipelinePropertiesKHR::default();
-                    self.handle.get_physical_device_properties2(
+                    self.inner.handle.get_physical_device_properties2(
                         *pdevice,
                         &mut vk::PhysicalDeviceProperties2::builder()
                             .push_next(&mut props2)
@@ -129,6 +136,7 @@ impl Instance {
                         };
 
                     let queue_families = self
+                        .inner
                         .handle
                         .get_physical_device_queue_family_properties(*pdevice)
                         .into_iter()
@@ -165,7 +173,7 @@ impl Instance {
     }
 }
 
-impl Drop for Instance {
+impl Drop for InstanceRef {
     fn drop(&mut self) {
         unsafe {
             self.handle.destroy_instance(None);

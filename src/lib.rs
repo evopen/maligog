@@ -1,5 +1,4 @@
-#![deny(unused_imports, unused_mut)]
-#![allow(dead_code)]
+#![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused))]
 
 mod buffer;
 mod device;

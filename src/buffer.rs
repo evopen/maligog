@@ -1,20 +1,19 @@
 use std::ffi::CString;
 use std::sync::Arc;
 
+use ash::version::DeviceV1_0;
 use ash::version::DeviceV1_2;
 use ash::vk::{self, Handle};
 
 use crate::device::Device;
 
 pub struct Buffer {
-    device: Arc<Device>,
+    device: Device,
     handle: vk::Buffer,
-    allocation: vk_mem::Allocation,
-    mapped: std::sync::atomic::AtomicBool,
-    device_address: vk::DeviceAddress,
+    // allocation: gpu_allocator::SubAllocation,
+    // device_address: vk::DeviceAddress,
     size: usize,
-    allocation_info: vk_mem::AllocationInfo,
-    property_flags: vk::MemoryPropertyFlags,
+    location: gpu_allocator::MemoryLocation,
 }
 
 impl std::fmt::Debug for Buffer {
@@ -22,7 +21,6 @@ impl std::fmt::Debug for Buffer {
         f.debug_struct("Buffer")
             .field("handle", &self.handle)
             .field("size", &self.size)
-            .field("mapped", &self.mapped)
             .finish()
     }
 }
@@ -30,42 +28,61 @@ impl std::fmt::Debug for Buffer {
 impl Buffer {
     pub fn new<I>(
         name: Option<&str>,
-        device: Arc<Device>,
+        device: Device,
         size: I,
         buffer_usage: vk::BufferUsageFlags,
-        memory_usage: vk_mem::MemoryUsage,
+        location: gpu_allocator::MemoryLocation,
     ) -> Self
     where
         I: num_traits::PrimInt,
     {
-        let (handle, allocation, allocation_info) = device
-            .allocator
-            .create_buffer(
-                &vk::BufferCreateInfo::builder()
-                    .usage(
-                        buffer_usage
-                            | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                            | vk::BufferUsageFlags::all(),
-                    )
-                    .size(size.to_u64().unwrap())
-                    .build(),
-                &vk_mem::AllocationCreateInfo {
-                    usage: memory_usage,
-                    ..Default::default()
-                },
-            )
-            .unwrap();
-
         unsafe {
+            let handle = device
+                .inner
+                .handle
+                .create_buffer(
+                    &vk::BufferCreateInfo::builder()
+                        .size(size.to_u64().unwrap())
+                        .usage(buffer_usage)
+                        .sharing_mode(vk::SharingMode::EXCLUSIVE),
+                    None,
+                )
+                .unwrap();
+            // let allocation = device
+            //     .inner
+            //     .allocator
+            //     .lock()
+            //     .unwrap()
+            //     .allocate(&gpu_allocator::AllocationCreateDesc {
+            //         name: name.unwrap_or("default"),
+            //         requirements: device.inner.handle.get_buffer_memory_requirements(handle),
+            //         location: location,
+            //         linear: true,
+            //     })
+            //     .unwrap();
+            // device
+            //     .inner
+            //     .allocator
+            //     .lock()
+            //     .unwrap()
+            //     .free(allocation)
+            //     .unwrap();
+
+            // device
+            //     .handle
+            //     .bind_buffer_memory(handle, allocation.memory(), allocation.offset())
+            //     .unwrap();
             if let Some(name) = name {
                 device
+                    .inner
                     .pdevice
                     .instance
+                    .inner
                     .debug_utils_loader
                     .as_ref()
                     .unwrap()
                     .debug_utils_set_object_name(
-                        device.handle.handle(),
+                        device.inner.handle.handle(),
                         &vk::DebugUtilsObjectNameInfoEXT::builder()
                             .object_handle(handle.as_raw())
                             .object_type(vk::ObjectType::BUFFER)
@@ -74,53 +91,44 @@ impl Buffer {
                     )
                     .unwrap();
             }
-            let device_address = device.handle.get_buffer_device_address(
-                &vk::BufferDeviceAddressInfo::builder()
-                    .buffer(handle)
-                    .build(),
-            );
-
-            let property_flags = device
-                .allocator
-                .get_memory_type_properties(allocation_info.get_memory_type())
-                .unwrap();
+            // let device_address = device.handle.get_buffer_device_address(
+            //     &vk::BufferDeviceAddressInfo::builder()
+            //         .buffer(handle)
+            //         .build(),
+            // );
 
             Self {
                 device,
                 handle,
-                allocation,
-                mapped: std::sync::atomic::AtomicBool::new(false),
-                device_address,
+                // allocation,
+                // device_address,
                 size: size.to_usize().unwrap(),
-                allocation_info,
-                property_flags,
+                location,
             }
         }
     }
 
-    pub fn new_init_host<I: AsRef<[u8]>>(
-        name: Option<&str>,
-        device: Arc<Device>,
-        buffer_usage: vk::BufferUsageFlags,
-        memory_usage: vk_mem::MemoryUsage,
-        data: I,
-    ) -> Self {
-        let data = data.as_ref();
-        let buffer = Self::new(
-            name,
-            device,
-            data.len(),
-            buffer_usage
-                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
-                | vk::BufferUsageFlags::TRANSFER_DST,
-            memory_usage,
-        );
-        let mapped = buffer.map();
-        let mapped_slice = unsafe { std::slice::from_raw_parts_mut(mapped, buffer.size) };
-        mapped_slice.copy_from_slice(data.as_ref());
-        buffer.unmap();
-        buffer
-    }
+    // pub fn new_init_host<I: AsRef<[u8]>>(
+    //     name: Option<&str>,
+    //     device: Arc<Device>,
+    //     buffer_usage: vk::BufferUsageFlags,
+    //     location: gpu_allocator::MemoryLocation,
+    //     data: I,
+    // ) -> Self {
+    //     let data = data.as_ref();
+    //     let mut buffer = Self::new(
+    //         name,
+    //         device,
+    //         data.len(),
+    //         buffer_usage
+    //             | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+    //             | vk::BufferUsageFlags::TRANSFER_DST,
+    //         location,
+    //     );
+    //     let mapped = buffer.mapped_slice_mut().unwrap();
+    //     mapped.copy_from_slice(data.as_ref());
+    //     buffer
+    // }
 
     // pub fn new_init_device<I: AsRef<[u8]>>(
     //     name: Option<&str>,
@@ -174,85 +182,65 @@ impl Buffer {
     //     buffer
     // }
 
-    pub fn map(&self) -> *mut u8 {
-        if !self.is_mappable() {
-            panic!("memory is not host visible");
-        }
+    // pub fn mapped_slice(&self) -> Option<&[u8]> {
+    //     self.allocation.mapped_slice()
+    // }
 
-        let ptr = self.device.allocator.map_memory(&self.allocation).unwrap();
-        self.mapped
-            .compare_exchange(
-                false,
-                true,
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-            )
-            .expect("already mapped");
-        ptr
-    }
+    // pub fn mapped_slice_mut(&mut self) -> Option<&mut [u8]> {
+    //     self.allocation.mapped_slice_mut()
+    // }
 
-    pub fn unmap(&self) {
-        self.mapped
-            .compare_exchange(
-                true,
-                false,
-                std::sync::atomic::Ordering::SeqCst,
-                std::sync::atomic::Ordering::SeqCst,
-            )
-            .expect("not mapped");
-        self.device.allocator.unmap_memory(&self.allocation);
-    }
+    // pub fn memory_type(&self) -> u32 {
+    //     self.allocation_info.get_memory_type()
+    // }
 
-    pub fn memory_type(&self) -> u32 {
-        self.allocation_info.get_memory_type()
-    }
+    // pub fn device_address(&self) -> vk::DeviceAddress {
+    //     self.device_address
+    // }
 
-    pub fn device_address(&self) -> vk::DeviceAddress {
-        self.device_address
-    }
-
-    pub fn copy_from<I: AsRef<[u8]>>(&self, data: I) {
-        let data = data.as_ref();
-        let mapped = self.map();
-        let mapped_bytes = unsafe { std::slice::from_raw_parts_mut(mapped, self.size) };
-        mapped_bytes.copy_from_slice(data);
-        self.unmap();
-    }
+    // pub fn copy_from<I: AsRef<[u8]>>(&mut self, data: I) {
+    //     let data = data.as_ref();
+    //     let mapped = self.mapped_slice_mut().unwrap();
+    //     mapped.copy_from_slice(data);
+    // }
 
     pub fn size(&self) -> usize {
         self.size
     }
 
-    pub fn is_device_local(&self) -> bool {
-        self.property_flags & vk::MemoryPropertyFlags::DEVICE_LOCAL
-            != vk::MemoryPropertyFlags::empty()
-    }
+    // pub fn is_device_local(&self) -> bool {
+    //     self.property_flags & vk::MemoryPropertyFlags::DEVICE_LOCAL
+    //         != vk::MemoryPropertyFlags::empty()
+    // }
 
-    pub fn is_mappable(&self) -> bool {
-        self.property_flags & vk::MemoryPropertyFlags::HOST_VISIBLE
-            != vk::MemoryPropertyFlags::empty()
-    }
+    // pub fn is_mappable(&self) -> bool {
+    //     self.property_flags & vk::MemoryPropertyFlags::HOST_VISIBLE
+    //         != vk::MemoryPropertyFlags::empty()
+    // }
 
-    pub fn flush(&self) {
-        self.device
-            .allocator
-            .flush_allocation(&self.allocation, 0, vk::WHOLE_SIZE as usize);
-    }
+    // pub fn flush(&self) {
+    //     self.device
+    //         .allocator
+    //         .flush_allocation(&self.allocation, 0, vk::WHOLE_SIZE as usize);
+    // }
 }
 
 impl Drop for Buffer {
     fn drop(&mut self) {
-        if self.mapped.load(std::sync::atomic::Ordering::SeqCst) {
-            self.unmap();
-        }
-        self.device
-            .allocator
-            .destroy_buffer(self.handle, &self.allocation);
+        // self.device
+        //     .allocator
+        //     .lock()
+        //     .unwrap()
+        //     .free(self.allocation.to_owned())
+        //     .unwrap();
     }
 }
 
 #[test]
 fn test_create_buffer() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Trace)
+        .init();
     use crate::entry::Entry;
 
     let entry = Entry::new().unwrap();
@@ -278,8 +266,9 @@ fn test_create_buffer() {
     let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
     let _buffer = device.create_buffer(
         None,
-        100,
-        vk::BufferUsageFlags::STORAGE_BUFFER,
-        vk_mem::MemoryUsage::GpuOnly,
+        512,
+        vk::BufferUsageFlags::empty(),
+        gpu_allocator::MemoryLocation::CpuToGpu,
     );
+    // let a = _buffer.mapped_slice();
 }

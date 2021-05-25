@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct QueueFamily {
     pub(crate) index: u32,
     pub(crate) support_graphics: bool,

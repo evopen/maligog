@@ -3,7 +3,7 @@ name = "maligog"
 version = "0.1.0"
 authors = ["evopen <520dhh@gmail.com>"]
 edition = "2018"
-description = "A safe wrapper for Vulkan API"
+description = "A wrapper for Vulkan API"
 license = "MIT"
 repository = "https://github.com/evopen/maligog"
 keywords = ["vulkan"]
@@ -16,7 +16,8 @@ ash-window = "0.6.0"
 num-traits = "0.2.14"
 strum = "0.20.0"
 strum_macros = "0.20.1"
-vk-mem = { version = "0.2.2", features = ["link_vulkan"] }
+gpu-allocator = "0.7.0"
+log = "0.4"
 
-[patch.crates-io]
-vk-mem = { git = "https://github.com/evopen/vk-mem-rs.git", branch = "master" }
+[dev-dependencies]
+env_logger = "0.8.3"
