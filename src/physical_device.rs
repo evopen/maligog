@@ -58,14 +58,14 @@ impl PhysicalDevice {
             .collect::<Vec<_>>()
     }
 
-    pub fn create_device(&self, queues: &[(&QueueFamily, &[f32])]) -> Arc<Device> {
-        Arc::new(Device::new(
+    pub fn create_device(&self, queues: &[(&QueueFamily, &[f32])]) -> Device {
+        Device::new(
             self.instance.clone(),
             self.clone(),
             &DeviceFeatures {},
             &self.supported_device_extensions(),
             queues,
-        ))
+        )
     }
     pub fn name(&self) -> &str {
         self.name.as_str()

@@ -195,7 +195,8 @@ impl Drop for BufferRef {
 fn test_create_buffer() {
     env_logger::builder()
         .filter_level(log::LevelFilter::Trace)
-        .init();
+        .try_init()
+        .ok();
     use crate::entry::Entry;
 
     let entry = Entry::new().unwrap();

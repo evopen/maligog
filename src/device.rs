@@ -4,8 +4,10 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 use ash::vk;
+use thread_local::ThreadLocal;
 
 use crate::buffer::Buffer;
+use crate::command_pool::CommandPool;
 use crate::instance::Instance;
 use crate::name;
 use crate::physical_device::PhysicalDevice;
@@ -20,6 +22,7 @@ pub(crate) struct DeviceRef {
     swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
     pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
+    command_pool: ThreadLocal<CommandPool>,
 }
 
 #[derive(Clone)]
@@ -156,6 +159,7 @@ impl Device {
                     swapchain_loader,
                     ray_tracing_pipeline_loader,
                     allocator: Mutex::new(ManuallyDrop::new(allocator)),
+                    command_pool: ThreadLocal::new(),
                 }),
             }
         }
@@ -173,6 +177,17 @@ impl Device {
     {
         Buffer::new(name, self.clone(), size, buffer_usage, location)
     }
+
+    pub(crate) fn command_pool(&self) -> &CommandPool {
+        self.inner
+            .command_pool
+            .get_or(|| CommandPool::new(self.clone(), 0))
+    }
+
+    pub fn allocate_command_buffer(&self) {
+        let command_pool = self.command_pool();
+        let a = command_pool.allocate_command_buffer();
+    }
 }
 
 impl Drop for DeviceRef {
@@ -182,4 +197,36 @@ impl Drop for DeviceRef {
             self.handle.destroy_device(None);
         }
     }
+}
+
+#[test]
+fn test_create_command_buffer() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Trace)
+        .try_init()
+        .ok();
+    use crate::entry::Entry;
+
+    let entry = Entry::new().unwrap();
+    let instance = entry.create_instance(&[], &[]);
+    let _pdevices = instance.enumerate_physical_device();
+
+    let pdevice = instance
+        .enumerate_physical_device()
+        .into_iter()
+        .find(|p| {
+            p.device_type == vk::PhysicalDeviceType::DISCRETE_GPU
+                && p.queue_families
+                    .iter()
+                    .any(|f| f.support_compute() && f.support_graphics())
+        })
+        .unwrap();
+    let pdevice = Arc::new(pdevice);
+    let queue_family = pdevice
+        .queue_families()
+        .iter()
+        .find(|f| f.support_graphics() && f.support_compute())
+        .unwrap();
+    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    device.allocate_command_buffer();
 }
