@@ -140,15 +140,14 @@ impl Device {
                     device: handle.clone(),
                     physical_device: pdevice.handle,
                     debug_settings: gpu_allocator::AllocatorDebugSettings {
-                        log_memory_information: true,
+                        log_memory_information: false,
                         log_leaks_on_shutdown: true,
-                        store_stack_traces: true,
+                        store_stack_traces: false,
                         log_allocations: true,
                         log_frees: true,
-                        log_stack_traces: true,
+                        log_stack_traces: false,
                     },
                 });
-            allocator.report_memory_leaks(log::Level::Trace);
 
             Self {
                 inner: Arc::new(DeviceRef {
