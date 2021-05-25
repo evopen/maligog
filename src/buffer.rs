@@ -4,8 +4,6 @@ use std::sync::LockResult;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 
-use ash::version::DeviceV1_0;
-use ash::version::DeviceV1_2;
 use ash::vk::{self, Handle};
 
 use crate::device::Device;

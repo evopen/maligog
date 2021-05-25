@@ -2,7 +2,6 @@ use std::ffi::CStr;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use ash::version::EntryV1_0;
 use ash::vk;
 
 // use crate::instance::Instance;

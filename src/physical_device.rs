@@ -1,4 +1,3 @@
-use ash::version::InstanceV1_0;
 use ash::vk;
 
 use crate::device::{Device, DeviceFeatures};

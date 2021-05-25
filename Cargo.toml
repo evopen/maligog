@@ -11,13 +11,13 @@ keywords = ["vulkan"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ash = "0.32.1"
-ash-window = "0.6.0"
+ash = { git = "https://github.com/MaikKlein/ash.git", rev = "9d6bf63b4e37f768b7cee85f9d82f4ac77b1fe22" }
+ash-window = { git = "https://github.com/MaikKlein/ash.git", rev = "9d6bf63b4e37f768b7cee85f9d82f4ac77b1fe22" }
 num-traits = "0.2.14"
 strum = "0.20.0"
 strum_macros = "0.20.1"
-gpu-allocator = "0.7.0"
-log = "0.4"
+gpu-allocator = { git = "https://github.com/evopen/gpu-allocator.git", branch = "main" }
+log = "0.4.14"
 
 [dev-dependencies]
 env_logger = "0.8.3"

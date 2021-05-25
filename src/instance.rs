@@ -1,7 +1,6 @@
 use std::ffi::{CStr, CString};
 use std::sync::Arc;
 
-use ash::version::{EntryV1_0, InstanceV1_0, InstanceV1_1};
 use ash::vk;
 
 use crate::physical_device::PhysicalDevice;
