@@ -9,17 +9,18 @@ use ash::vk;
 use crate::instance::Instance;
 use crate::name;
 
+#[derive(Clone)]
 pub struct Entry {
     pub(crate) handle: ash::Entry,
 }
 
 impl Entry {
-    pub fn new() -> Result<Arc<Self>, ash::LoadingError> {
+    pub fn new() -> Result<Self, ash::LoadingError> {
         let handle = unsafe { ash::Entry::new()? };
 
         let result = Self { handle };
 
-        Ok(Arc::new(result))
+        Ok(result)
     }
 
     pub fn vulkan_loader_version(&self) -> String {
@@ -108,12 +109,12 @@ impl Entry {
     }
 
     pub fn create_instance(
-        self: &Arc<Self>,
+        &self,
         layers: &[name::instance::Layer],
         extensions: &[name::instance::Extension],
-    ) -> Arc<Instance> {
+    ) -> Instance {
         let instance = Instance::new(self.clone(), layers, extensions);
-        Arc::new(instance)
+        instance
     }
 }
 

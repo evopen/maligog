@@ -11,7 +11,8 @@ use crate::command_pool::CommandPool;
 use crate::instance::Instance;
 use crate::name;
 use crate::physical_device::PhysicalDevice;
-use crate::queue_family::QueueFamily;
+use crate::queue::Queue;
+use crate::queue_family::QueueFamilyProperties;
 
 pub struct DeviceFeatures {}
 
@@ -36,7 +37,7 @@ impl Device {
         pdevice: PhysicalDevice,
         _device_features: &DeviceFeatures,
         device_extensions: &[name::device::Extension],
-        queues: &[(&QueueFamily, &[f32])],
+        queues: &[(&QueueFamilyProperties, &[f32])],
     ) -> Self {
         unsafe {
             let mut queue_infos = Vec::new();
@@ -227,6 +228,6 @@ fn test_create_command_buffer() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let (device, _) = pdevice.create_device(&[(&queue_family, &[1.0])]);
     device.allocate_command_buffer();
 }

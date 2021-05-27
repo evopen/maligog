@@ -7,11 +7,11 @@ use crate::physical_device::PhysicalDevice;
 
 use crate::entry::Entry;
 use crate::name;
-use crate::queue_family::QueueFamily;
+use crate::queue_family::QueueFamilyProperties;
 
 pub(crate) struct InstanceRef {
     pub(crate) handle: ash::Instance,
-    entry: Arc<Entry>,
+    entry: Entry,
     enabled_layers: Vec<name::instance::Layer>,
     enabled_extensions: Vec<name::instance::Extension>,
     surface_loader: Option<ash::extensions::khr::Surface>,
@@ -26,7 +26,7 @@ pub struct Instance {
 
 impl Instance {
     pub fn new(
-        entry: Arc<Entry>,
+        entry: Entry,
         layers: &[name::instance::Layer],
         extensions: &[name::instance::Extension],
     ) -> Self {
@@ -140,7 +140,7 @@ impl Instance {
                         .get_physical_device_queue_family_properties(*pdevice)
                         .into_iter()
                         .enumerate()
-                        .map(|(index, properties)| QueueFamily {
+                        .map(|(index, properties)| QueueFamilyProperties {
                             index: index as u32,
                             support_graphics: properties
                                 .queue_flags

@@ -3,7 +3,8 @@ use ash::vk;
 use crate::device::{Device, DeviceFeatures};
 use crate::instance::Instance;
 use crate::name;
-use crate::queue_family::QueueFamily;
+use crate::queue::Queue;
+use crate::queue_family::{QueueFamily, QueueFamilyProperties};
 use std::ffi::CStr;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -26,10 +27,14 @@ pub struct PhysicalDevice {
     pub(crate) handle: vk::PhysicalDevice,
     pub(crate) instance: Instance,
     pub(crate) ray_tracing_pipeline_properties: PhysicalDeviceRayTracingPipelineProperties,
-    pub queue_families: Vec<QueueFamily>,
+    pub queue_families: Vec<QueueFamilyProperties>,
 }
 
 impl PhysicalDevice {
+    pub fn device_type(&self) -> vk::PhysicalDeviceType {
+        self.device_type
+    }
+
     pub fn supported_device_extensions_raw(&self) -> Vec<String> {
         unsafe {
             self.instance
@@ -58,20 +63,36 @@ impl PhysicalDevice {
             .collect::<Vec<_>>()
     }
 
-    pub fn create_device(&self, queues: &[(&QueueFamily, &[f32])]) -> Device {
-        Device::new(
+    pub fn create_device(
+        &self,
+        queues: &[(&QueueFamilyProperties, &[f32])],
+    ) -> (Device, Vec<QueueFamily>) {
+        let device = Device::new(
             self.instance.clone(),
             self.clone(),
             &DeviceFeatures {},
             &self.supported_device_extensions(),
             queues,
-        )
+        );
+        let mut queue_families = Vec::with_capacity(queues.len());
+        for (property, priorities) in queues {
+            let mut queue_family = QueueFamily {
+                property: (*property).clone(),
+                queues: Vec::new(),
+            };
+            for index in 0..priorities.len() as u32 {
+                let queue = Queue::new(&device, &&property, index);
+                queue_family.queues.push(queue);
+            }
+            queue_families.push(queue_family);
+        }
+        (device, queue_families)
     }
     pub fn name(&self) -> &str {
         self.name.as_str()
     }
 
-    pub fn queue_families(&self) -> &[QueueFamily] {
+    pub fn queue_families(&self) -> &[QueueFamilyProperties] {
         self.queue_families.as_slice()
     }
 }

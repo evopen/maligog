@@ -126,7 +126,7 @@ impl Buffer {
                 | vk::BufferUsageFlags::TRANSFER_DST,
             location,
         );
-        let mut guard = buffer.lock_allocation().unwrap();
+        let mut guard = buffer.lock_memory().unwrap();
         match guard.mapped_slice_mut() {
             Some(mapped) => {
                 mapped.copy_from_slice(data.as_ref());
@@ -139,7 +139,7 @@ impl Buffer {
         buffer
     }
 
-    pub fn lock_allocation(&self) -> LockResult<MutexGuard<gpu_allocator::SubAllocation>> {
+    pub fn lock_memory(&self) -> LockResult<MutexGuard<gpu_allocator::SubAllocation>> {
         self.inner.allocation.lock()
     }
 
@@ -153,7 +153,7 @@ impl Buffer {
 
     pub fn copy_from<I: AsRef<[u8]>>(&self, data: I) {
         let data = data.as_ref();
-        let mut guard = self.lock_allocation().unwrap();
+        let mut guard = self.lock_memory().unwrap();
         let mapped = guard.mapped_slice_mut().unwrap();
         mapped.copy_from_slice(data);
     }
@@ -219,13 +219,13 @@ fn test_create_buffer() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let (device, _) = pdevice.create_device(&[(&queue_family, &[1.0])]);
     let buffer = device.create_buffer(
         None,
         512,
         vk::BufferUsageFlags::STORAGE_BUFFER,
         gpu_allocator::MemoryLocation::GpuOnly,
     );
-    assert!(buffer.lock_allocation().unwrap().mapped_slice() == None);
+    assert!(buffer.lock_memory().unwrap().mapped_slice() == None);
     dbg!(&buffer.device_address());
 }
