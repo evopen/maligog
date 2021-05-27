@@ -9,9 +9,18 @@ pub mod entry;
 pub mod instance;
 pub mod name;
 pub mod physical_device;
+mod pipeline;
 pub mod queue;
 pub mod queue_family;
 pub mod sampler;
 
-pub use ash::vk;
+mod shader_module;
+
+pub use device::Device;
+pub use shader_module::ShaderModule;
+
+pub use descriptor::DescriptorSetLayoutBinding;
+pub use descriptor::DescriptorType;
+
+pub use ash::vk::{BufferUsageFlags, ShaderStageFlags};
 pub use gpu_allocator::MemoryLocation;

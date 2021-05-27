@@ -135,3 +135,13 @@ impl Drop for DescriptorSetLayout {
         }
     }
 }
+
+impl Device {
+    pub fn create_descriptor_set_layout(
+        &self,
+        name: Option<&str>,
+        bindings: &[DescriptorSetLayoutBinding],
+    ) -> DescriptorSetLayout {
+        DescriptorSetLayout::new(self.clone(), name, bindings)
+    }
+}

@@ -54,6 +54,12 @@ impl Sampler {
     }
 }
 
+impl Device {
+    pub fn create_sampler(&self, name: Option<&str>) -> Sampler {
+        Sampler::new(self.clone(), name)
+    }
+}
+
 impl Drop for SamplerRef {
     fn drop(&mut self) {
         unsafe {
