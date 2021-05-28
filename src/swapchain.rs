@@ -14,6 +14,7 @@ pub struct SwapchainRef {
     present_mode: vk::PresentModeKHR,
 }
 
+#[derive(Clone)]
 pub struct Swapchain {
     pub(crate) inner: Arc<SwapchainRef>,
 }

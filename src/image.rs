@@ -5,7 +5,6 @@ use ash::vk;
 use ash::vk::Handle;
 
 use crate::buffer::Buffer;
-use crate::CommandPool;
 use crate::Device;
 use crate::Swapchain;
 use crate::TimelineSemaphore;
@@ -241,7 +240,7 @@ impl Image {
 
     pub fn from_swapchain(swapchain: Swapchain) -> Vec<Self> {
         unsafe {
-            let device = swapchain.inner.device;
+            let device = &swapchain.inner.device;
             let images = device
                 .inner
                 .swapchain_loader
@@ -293,7 +292,7 @@ impl Image {
     }
 
     fn device(&self) -> Device {
-        let device = match self.inner.image_type {
+        let device = match &self.inner.image_type {
             ImageType::Allocated { device, .. } => device.clone(),
             ImageType::Swapchain { swapchain } => swapchain.inner.device.clone(),
         };
@@ -337,7 +336,7 @@ impl Drop for ImageRef {
                     .allocator
                     .lock()
                     .unwrap()
-                    .free(*allocation)
+                    .free(allocation.clone())
                     .unwrap();
                 device.inner.handle.destroy_image(self.handle, None);
             },

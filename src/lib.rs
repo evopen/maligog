@@ -8,7 +8,7 @@ mod descriptor_pool;
 // mod descriptor_set;
 pub mod device;
 pub mod entry;
-// mod image;
+mod image;
 pub mod instance;
 pub mod name;
 pub mod physical_device;
