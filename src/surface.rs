@@ -40,6 +40,16 @@ impl Surface {
             }),
         }
     }
+
+    pub fn required_extensions() -> Vec<crate::name::instance::Extension> {
+        cfg_if::cfg_if! {
+            if #[cfg(unix)] {
+                return vec![crate::name::instance::Extension::KhrSurface,
+                            crate::name::instance::Extension::KhrXlibSurface
+                            ];
+            }
+        }
+    }
 }
 
 impl Drop for SurfaceRef {
@@ -52,5 +62,11 @@ impl Drop for SurfaceRef {
                 .unwrap()
                 .destroy_surface(self.handle, None);
         }
+    }
+}
+
+impl Instance {
+    pub fn create_surface(&self, window: &dyn raw_window_handle::HasRawWindowHandle) -> Surface {
+        Surface::new(self.clone(), window)
     }
 }

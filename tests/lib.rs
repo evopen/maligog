@@ -1,4 +1,5 @@
 use maligog::vk;
+use winit::platform::unix::EventLoopExtUnix;
 
 #[test]
 fn test_general() {
@@ -7,7 +8,14 @@ fn test_general() {
         .try_init()
         .ok();
     let entry = maligog::Entry::new().unwrap();
-    let instance = entry.create_instance(&[], &[maligog::name::instance::Extension::ExtDebugUtils]);
+    let instance = entry.create_instance(
+        &[],
+        &[
+            maligog::name::instance::Extension::ExtDebugUtils,
+            maligog::name::instance::Extension::KhrSurface,
+            maligog::name::instance::Extension::KhrXlibSurface,
+        ],
+    );
     let pdevice = instance
         .enumerate_physical_device()
         .first()
@@ -65,4 +73,10 @@ fn test_general() {
         1,
     );
     let sampler = device.create_sampler(Some("sampler"));
+    let event_loop = winit::event_loop::EventLoop::<()>::new_any_thread();
+    let win = winit::window::WindowBuilder::new()
+        .build(&event_loop)
+        .unwrap();
+    let surface = instance.create_surface(&win);
+    let swapchain = device.create_swapchain(surface, maligog::PresentModeKHR::IMMEDIATE);
 }

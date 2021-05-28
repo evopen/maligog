@@ -207,3 +207,13 @@ impl Drop for SwapchainRef {
         }
     }
 }
+
+impl Device {
+    pub fn create_swapchain(
+        &self,
+        surface: Surface,
+        present_mode: vk::PresentModeKHR,
+    ) -> Swapchain {
+        Swapchain::new(self.clone(), surface, present_mode)
+    }
+}
