@@ -41,5 +41,6 @@ pub use shader_stage::ShaderStage;
 pub use surface::Surface;
 pub use swapchain::Swapchain;
 
-pub use ash::vk::{BufferUsageFlags, ShaderStageFlags};
+pub use ash::vk;
+pub use ash::vk::{BufferUsageFlags, DescriptorPoolSize, ShaderStageFlags};
 pub use gpu_allocator::MemoryLocation;

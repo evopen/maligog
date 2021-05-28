@@ -9,6 +9,7 @@ use ash::vk::{self, Handle};
 use crate::device::Device;
 
 pub(crate) struct BufferRef {
+    name: Option<String>,
     pub(crate) device: Device,
     pub(crate) handle: vk::Buffer,
     allocation: Mutex<gpu_allocator::SubAllocation>,
@@ -24,8 +25,14 @@ pub struct Buffer {
 impl std::fmt::Debug for Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Buffer")
+            .field("name", &self.inner.name)
             .field("handle", &self.inner.handle)
             .field("size", &self.inner.size)
+            .field(
+                "device_address",
+                &format!("0x{:X?}", &self.inner.device_address),
+            )
+            .field("memory_location", &self.inner.location)
             .finish()
     }
 }
@@ -98,6 +105,7 @@ impl Buffer {
 
             Self {
                 inner: Arc::new(BufferRef {
+                    name: name.map(|a| a.to_owned()),
                     device: device.clone(),
                     handle,
                     allocation: Mutex::new(allocation),
