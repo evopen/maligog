@@ -5,12 +5,12 @@ use ash::vk;
 use crate::Device;
 
 pub(crate) struct ShaderModuleRef {
-    handle: vk::ShaderModule,
+    pub(crate) handle: vk::ShaderModule,
     device: Device,
 }
 
 pub struct ShaderModule {
-    inner: Arc<ShaderModuleRef>,
+    pub(crate) inner: Arc<ShaderModuleRef>,
 }
 
 #[repr(C, align(32))]

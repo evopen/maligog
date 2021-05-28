@@ -10,17 +10,21 @@ pub mod instance;
 pub mod name;
 pub mod physical_device;
 mod pipeline;
+mod pipeline_layout;
 pub mod queue;
 pub mod queue_family;
+mod render_pass;
 pub mod sampler;
+mod shader_stage;
 
 mod shader_module;
 
-pub use device::Device;
-pub use shader_module::ShaderModule;
-
 pub use descriptor::DescriptorSetLayoutBinding;
 pub use descriptor::DescriptorType;
+pub use device::Device;
+pub use render_pass::RenderPass;
+pub use shader_module::ShaderModule;
+pub use shader_stage::ShaderStage;
 
 pub use ash::vk::{BufferUsageFlags, ShaderStageFlags};
 pub use gpu_allocator::MemoryLocation;

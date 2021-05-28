@@ -2,6 +2,7 @@ use crate::device::Device;
 use crate::sampler::Sampler;
 use ash::vk::{self, Handle};
 use std::ffi::CString;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub enum DescriptorType {
@@ -20,11 +21,15 @@ pub struct DescriptorSetLayoutBinding {
     pub stage_flags: vk::ShaderStageFlags,
 }
 
-pub struct DescriptorSetLayout {
-    handle: vk::DescriptorSetLayout,
+pub(crate) struct DescriptorSetLayoutRef {
+    pub(crate) handle: vk::DescriptorSetLayout,
     device: Device,
     bindings: Vec<DescriptorSetLayoutBinding>,
     vk_bindings: Vec<vk::DescriptorSetLayoutBinding>,
+}
+
+pub struct DescriptorSetLayout {
+    pub(crate) inner: Arc<DescriptorSetLayoutRef>,
 }
 
 impl DescriptorSetLayout {
@@ -116,16 +121,18 @@ impl DescriptorSetLayout {
             }
 
             Self {
-                handle,
-                device,
-                bindings: bindings.to_owned(),
-                vk_bindings,
+                inner: Arc::new(DescriptorSetLayoutRef {
+                    handle,
+                    device,
+                    bindings: bindings.to_owned(),
+                    vk_bindings,
+                }),
             }
         }
     }
 }
 
-impl Drop for DescriptorSetLayout {
+impl Drop for DescriptorSetLayoutRef {
     fn drop(&mut self) {
         unsafe {
             self.device
