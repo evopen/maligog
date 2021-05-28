@@ -2,8 +2,6 @@ use ash::vk;
 
 use crate::device::Device;
 
-thread_local! {}
-
 pub(crate) struct CommandPool {
     pub(crate) handle: vk::CommandPool,
     device: Device,

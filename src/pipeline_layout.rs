@@ -75,3 +75,14 @@ impl Drop for PipelineLayoutRef {
         }
     }
 }
+
+impl Device {
+    pub fn create_pipeline_layout(
+        &self,
+        name: Option<&str>,
+        set_layouts: &[&DescriptorSetLayout],
+        push_constant_ranges: &[vk::PushConstantRange],
+    ) -> PipelineLayout {
+        PipelineLayout::new(&self, name, set_layouts, push_constant_ranges)
+    }
+}

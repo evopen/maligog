@@ -11,10 +11,10 @@ use crate::queue_family::QueueFamilyProperties;
 
 pub(crate) struct InstanceRef {
     pub(crate) handle: ash::Instance,
-    entry: Entry,
+    pub(crate) entry: Entry,
     enabled_layers: Vec<name::instance::Layer>,
     enabled_extensions: Vec<name::instance::Extension>,
-    surface_loader: Option<ash::extensions::khr::Surface>,
+    pub(crate) surface_loader: Option<ash::extensions::khr::Surface>,
     pub debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
     display_loader: ash::extensions::khr::Display,
 }

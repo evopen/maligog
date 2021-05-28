@@ -188,6 +188,9 @@ impl Drop for BufferRef {
             .unwrap()
             .free(self.allocation.lock().unwrap().to_owned())
             .unwrap();
+        unsafe {
+            self.device.inner.handle.destroy_buffer(self.handle, None);
+        }
     }
 }
 

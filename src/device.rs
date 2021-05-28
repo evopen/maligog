@@ -20,7 +20,7 @@ pub(crate) struct DeviceRef {
     pub handle: ash::Device,
     pub pdevice: PhysicalDevice,
     acceleration_structure_loader: ash::extensions::khr::AccelerationStructure,
-    swapchain_loader: ash::extensions::khr::Swapchain,
+    pub(crate) swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
     pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
     command_pool: ThreadLocal<CommandPool>,

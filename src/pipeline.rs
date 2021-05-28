@@ -102,3 +102,37 @@ impl Drop for GraphicsPipelineRef {
         }
     }
 }
+
+impl Device {
+    pub fn create_graphics_pipeline(
+        &self,
+        name: Option<&str>,
+        layout: PipelineLayout,
+        stages: Vec<ShaderStage>,
+        render_pass: RenderPass,
+        vertex_input_state: &vk::PipelineVertexInputStateCreateInfo,
+        input_assembly_state: &vk::PipelineInputAssemblyStateCreateInfo,
+        rasterization_state: &vk::PipelineRasterizationStateCreateInfo,
+        multisample_state: &vk::PipelineMultisampleStateCreateInfo,
+        depth_stencil_state: &vk::PipelineDepthStencilStateCreateInfo,
+        color_blend_state: &vk::PipelineColorBlendStateCreateInfo,
+        viewport_state: &vk::PipelineViewportStateCreateInfo,
+        dynamic_state: &vk::PipelineDynamicStateCreateInfo,
+    ) -> GraphicsPipeline {
+        GraphicsPipeline::new(
+            name,
+            &self,
+            layout,
+            stages,
+            render_pass,
+            vertex_input_state,
+            input_assembly_state,
+            rasterization_state,
+            multisample_state,
+            depth_stencil_state,
+            color_blend_state,
+            viewport_state,
+            dynamic_state,
+        )
+    }
+}
