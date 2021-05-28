@@ -8,9 +8,9 @@ use ash::vk::{self, Handle};
 
 use crate::device::Device;
 
-struct BufferRef {
-    device: Device,
-    handle: vk::Buffer,
+pub(crate) struct BufferRef {
+    pub(crate) device: Device,
+    pub(crate) handle: vk::Buffer,
     allocation: Mutex<gpu_allocator::SubAllocation>,
     device_address: vk::DeviceAddress,
     size: usize,
@@ -18,7 +18,7 @@ struct BufferRef {
 }
 
 pub struct Buffer {
-    inner: Arc<BufferRef>,
+    pub(crate) inner: Arc<BufferRef>,
 }
 
 impl std::fmt::Debug for Buffer {
@@ -33,7 +33,7 @@ impl std::fmt::Debug for Buffer {
 impl Buffer {
     pub fn new<I>(
         name: Option<&str>,
-        device: Device,
+        device: &Device,
         size: I,
         buffer_usage: vk::BufferUsageFlags,
         location: gpu_allocator::MemoryLocation,
@@ -98,7 +98,7 @@ impl Buffer {
 
             Self {
                 inner: Arc::new(BufferRef {
-                    device,
+                    device: device.clone(),
                     handle,
                     allocation: Mutex::new(allocation),
                     device_address,
@@ -109,7 +109,7 @@ impl Buffer {
         }
     }
 
-    pub fn new_with<I: AsRef<[u8]>>(
+    pub fn new_with_data<I: AsRef<[u8]>>(
         name: Option<&str>,
         device: Device,
         buffer_usage: vk::BufferUsageFlags,
@@ -119,7 +119,7 @@ impl Buffer {
         let data = data.as_ref();
         let mut buffer = Self::new(
             name,
-            device,
+            &device,
             data.len(),
             buffer_usage
                 | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
@@ -129,10 +129,26 @@ impl Buffer {
         let mut guard = buffer.lock_memory().unwrap();
         match guard.mapped_slice_mut() {
             Some(mapped) => {
-                mapped.copy_from_slice(data.as_ref());
+                mapped[0..data.len()].copy_from_slice(data.as_ref());
             }
             None => {
-                unimplemented!()
+                let staging_buffer = device.create_buffer_init(
+                    Some("staging buffer"),
+                    data,
+                    vk::BufferUsageFlags::empty(),
+                    gpu_allocator::MemoryLocation::CpuToGpu,
+                );
+                let mut cmd_buf =
+                    device.create_command_buffer(device.inner.transfer_queue_family_index);
+                cmd_buf.encode(|recorder| {
+                    unsafe {
+                        recorder.copy_buffer_raw(
+                            &staging_buffer,
+                            &buffer,
+                            &[vk::BufferCopy::builder().size(data.len() as u64).build()],
+                        )
+                    }
+                });
             }
         }
         drop(guard);
@@ -194,6 +210,34 @@ impl Drop for BufferRef {
     }
 }
 
+impl Device {
+    pub fn create_buffer<I>(
+        &self,
+        name: Option<&str>,
+        size: I,
+        buffer_usage: vk::BufferUsageFlags,
+        location: gpu_allocator::MemoryLocation,
+    ) -> Buffer
+    where
+        I: num_traits::PrimInt,
+    {
+        Buffer::new(name, self, size, buffer_usage, location)
+    }
+
+    pub fn create_buffer_init<D>(
+        &self,
+        name: Option<&str>,
+        data: D,
+        buffer_usage: vk::BufferUsageFlags,
+        location: gpu_allocator::MemoryLocation,
+    ) -> Buffer
+    where
+        D: AsRef<[u8]>,
+    {
+        Buffer::new_with_data(name, self.clone(), buffer_usage, location, data)
+    }
+}
+
 #[test]
 fn test_create_buffer() {
     env_logger::builder()
@@ -225,7 +269,7 @@ fn test_create_buffer() {
     let (device, _) = pdevice.create_device(&[(&queue_family, &[1.0])]);
     let buffer = device.create_buffer(
         None,
-        512,
+        123,
         vk::BufferUsageFlags::STORAGE_BUFFER,
         gpu_allocator::MemoryLocation::GpuOnly,
     );

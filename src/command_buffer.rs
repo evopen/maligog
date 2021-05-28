@@ -1,21 +1,23 @@
 use ash::vk;
 
+use crate::command_pool::CommandPool;
+use crate::command_recorder::CommandRecorder;
 use crate::device::Device;
 
-struct CommandBuffer {
-    device: Device,
-    handle: vk::CommandBuffer,
+pub struct CommandBuffer {
+    pub(crate) device: Device,
+    pub(crate) handle: vk::CommandBuffer,
 }
 
 impl CommandBuffer {
-    pub fn new(device: Device) -> Self {
+    pub(crate) fn new(device: Device, command_pool: CommandPool) -> Self {
         unsafe {
             let handle = device
                 .inner
                 .handle
                 .allocate_command_buffers(
                     &vk::CommandBufferAllocateInfo::builder()
-                        .command_pool(device.command_pool().handle)
+                        .command_pool(command_pool.handle)
                         .command_buffer_count(1)
                         .level(vk::CommandBufferLevel::PRIMARY)
                         .build(),
@@ -29,23 +31,41 @@ impl CommandBuffer {
         }
     }
 
-    pub fn begin(&self) {
+    // pub fn begin(&self) {
+    //     unsafe {
+    //         self.device
+    //             .inner
+    //             .handle
+    //             .begin_command_buffer(self.handle, &vk::CommandBufferBeginInfo::default())
+    //             .unwrap();
+    //     }
+    // }
+
+    // pub fn end(&self) {
+    //     unsafe {
+    //         self.device
+    //             .inner
+    //             .handle
+    //             .end_command_buffer(self.handle)
+    //             .unwrap();
+    //     }
+    // }
+
+    pub fn encode<F>(&mut self, func: F)
+    where
+        F: FnOnce(&mut CommandRecorder),
+    {
         unsafe {
-            self.device
-                .inner
-                .handle
+            let device = self.device.inner.handle.clone();
+            device
                 .begin_command_buffer(self.handle, &vk::CommandBufferBeginInfo::default())
                 .unwrap();
-        }
-    }
 
-    pub fn end(&self) {
-        unsafe {
-            self.device
-                .inner
-                .handle
-                .end_command_buffer(self.handle)
-                .unwrap();
+            let mut recorder = CommandRecorder {
+                command_buffer: self,
+            };
+            func(&mut recorder);
+            device.end_command_buffer(self.handle).unwrap();
         }
     }
 }
@@ -79,5 +99,5 @@ fn test_command_buffer() {
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
     let (device, _) = pdevice.create_device(&[(&queue_family, &[1.0])]);
-    device.allocate_command_buffer();
+    // device.allocate_command_buffer();
 }

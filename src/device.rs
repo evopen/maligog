@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::ffi::CString;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
@@ -13,6 +15,7 @@ use crate::name;
 use crate::physical_device::PhysicalDevice;
 use crate::queue::Queue;
 use crate::queue_family::QueueFamilyProperties;
+use crate::CommandBuffer;
 
 pub struct DeviceFeatures {}
 
@@ -23,7 +26,9 @@ pub(crate) struct DeviceRef {
     pub(crate) swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
     pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
-    command_pool: ThreadLocal<CommandPool>,
+    command_pool: ThreadLocal<RefCell<BTreeMap<u32, CommandPool>>>,
+    transfer_queue_handle: vk::Queue,
+    pub(crate) transfer_queue_family_index: u32,
 }
 
 #[derive(Clone)]
@@ -49,6 +54,17 @@ impl Device {
                         .build(),
                 )
             }
+            let transfer_queue_family = pdevice
+                .queue_families
+                .iter()
+                .find(|f| f.support_transfer && !f.support_compute && !f.support_graphics)
+                .unwrap();
+            queue_infos.push(
+                vk::DeviceQueueCreateInfo::builder()
+                    .queue_family_index(transfer_queue_family.index)
+                    .queue_priorities(&[1.0])
+                    .build(),
+            );
 
             let device_extension_names = device_extensions
                 .iter()
@@ -151,6 +167,8 @@ impl Device {
                         log_stack_traces: false,
                     },
                 });
+            let transfer_queue_handle = handle.get_device_queue(transfer_queue_family.index, 0);
+            let transfer_queue_family_index = transfer_queue_family.index;
 
             Self {
                 inner: Arc::new(DeviceRef {
@@ -161,34 +179,29 @@ impl Device {
                     ray_tracing_pipeline_loader,
                     allocator: Mutex::new(ManuallyDrop::new(allocator)),
                     command_pool: ThreadLocal::new(),
+                    transfer_queue_handle,
+                    transfer_queue_family_index,
                 }),
             }
         }
     }
 
-    pub fn create_buffer<I>(
-        &self,
-        name: Option<&str>,
-        size: I,
-        buffer_usage: vk::BufferUsageFlags,
-        location: gpu_allocator::MemoryLocation,
-    ) -> Buffer
-    where
-        I: num_traits::PrimInt,
-    {
-        Buffer::new(name, self.clone(), size, buffer_usage, location)
+    pub(crate) fn command_pool(&self, queue_family_index: u32) -> CommandPool {
+        let mut pools = self.inner.command_pool.get_or_default().borrow_mut();
+        let pool = pools
+            .entry(queue_family_index)
+            .or_insert(CommandPool::new(self.clone(), queue_family_index));
+        pool.clone()
     }
 
-    pub(crate) fn command_pool(&self) -> &CommandPool {
-        self.inner
-            .command_pool
-            .get_or(|| CommandPool::new(self.clone(), 0))
+    pub fn create_command_buffer(&self, queue_family_index: u32) -> CommandBuffer {
+        CommandBuffer::new(self.clone(), self.command_pool(queue_family_index))
     }
 
-    pub fn allocate_command_buffer(&self) {
-        let command_pool = self.command_pool();
-        let a = command_pool.allocate_command_buffer();
-    }
+    // pub fn allocate_command_buffer(&self) {
+    //     let command_pool = self.command_pool();
+    //     let a = command_pool.allocate_command_buffer();
+    // }
 }
 
 impl Drop for DeviceRef {
@@ -229,5 +242,5 @@ fn test_create_command_buffer() {
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
     let (device, _) = pdevice.create_device(&[(&queue_family, &[1.0])]);
-    device.allocate_command_buffer();
+    // device.allocate_command_buffer();
 }

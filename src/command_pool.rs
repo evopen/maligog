@@ -2,6 +2,7 @@ use ash::vk;
 
 use crate::device::Device;
 
+#[derive(Clone)]
 pub(crate) struct CommandPool {
     pub(crate) handle: vk::CommandPool,
     device: Device,
@@ -9,6 +10,7 @@ pub(crate) struct CommandPool {
 
 impl CommandPool {
     pub fn new(device: Device, queue_family_index: u32) -> Self {
+        log::debug!("creating command pool");
         unsafe {
             let handle = device
                 .inner
