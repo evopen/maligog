@@ -77,4 +77,13 @@ fn test_general() {
         .unwrap();
     let surface = instance.create_surface(&win);
     let swapchain = device.create_swapchain(surface, maligog::PresentModeKHR::IMMEDIATE);
+    let image = device.create_image(
+        Some("this is an image"),
+        vk::Format::B8G8R8A8_UNORM,
+        200,
+        200,
+        maligog::ImageUsageFlags::STORAGE,
+        maligog::MemoryLocation::GpuOnly,
+    );
+    let image_view = image.create_view();
 }

@@ -29,6 +29,7 @@ pub struct ImageRef {
     format: vk::Format,
 }
 
+#[derive(Clone)]
 pub struct Image {
     pub(crate) inner: Arc<ImageRef>,
 }
@@ -40,7 +41,6 @@ impl Image {
         format: vk::Format,
         width: u32,
         height: u32,
-        tiling: vk::ImageTiling,
         image_usage: vk::ImageUsageFlags,
         location: gpu_allocator::MemoryLocation,
     ) -> Self {
@@ -60,7 +60,14 @@ impl Image {
                         .samples(vk::SampleCountFlags::TYPE_1)
                         .mip_levels(1)
                         .array_layers(1)
-                        .tiling(tiling)
+                        .tiling(match location {
+                            gpu_allocator::MemoryLocation::Unknown => {
+                                unimplemented!()
+                            }
+                            gpu_allocator::MemoryLocation::GpuOnly => vk::ImageTiling::OPTIMAL,
+                            gpu_allocator::MemoryLocation::CpuToGpu => vk::ImageTiling::LINEAR,
+                            gpu_allocator::MemoryLocation::GpuToCpu => vk::ImageTiling::LINEAR,
+                        })
                         .usage(image_usage)
                         .sharing_mode(vk::SharingMode::EXCLUSIVE)
                         .initial_layout(vk::ImageLayout::UNDEFINED)
@@ -68,7 +75,31 @@ impl Image {
                     None,
                 )
                 .unwrap();
+            let allocation = device
+                .inner
+                .allocator
+                .lock()
+                .unwrap()
+                .allocate(&gpu_allocator::AllocationCreateDesc {
+                    name: name.unwrap_or("default"),
+                    requirements: device.inner.handle.get_image_memory_requirements(handle),
+                    location: location,
+                    linear: match location {
+                        gpu_allocator::MemoryLocation::Unknown => {
+                            unimplemented!()
+                        }
+                        gpu_allocator::MemoryLocation::GpuOnly => true,
+                        gpu_allocator::MemoryLocation::CpuToGpu => false,
+                        gpu_allocator::MemoryLocation::GpuToCpu => false,
+                    },
+                })
+                .unwrap();
 
+            device
+                .inner
+                .handle
+                .bind_image_memory(handle, allocation.memory(), allocation.offset())
+                .unwrap();
             if let Some(name) = name {
                 device
                     .inner
@@ -88,19 +119,6 @@ impl Image {
                     )
                     .unwrap();
             }
-
-            let allocation = device
-                .inner
-                .allocator
-                .lock()
-                .unwrap()
-                .allocate(&gpu_allocator::AllocationCreateDesc {
-                    name: name.unwrap_or("default"),
-                    requirements: device.inner.handle.get_image_memory_requirements(handle),
-                    location: location,
-                    linear: true,
-                })
-                .unwrap();
 
             let image_type = ImageType::Allocated {
                 device: device.clone(),
@@ -316,12 +334,20 @@ impl Image {
     //         .store(layout.as_raw(), std::sync::atomic::Ordering::SeqCst);
     // }
 
+    pub fn format(&self) -> vk::Format {
+        self.inner.format
+    }
+
     pub fn width(&self) -> u32 {
         self.inner.width
     }
 
     pub fn height(&self) -> u32 {
         self.inner.height
+    }
+
+    pub(crate) fn handle(&self) -> vk::Image {
+        self.inner.handle
     }
 }
 
@@ -342,5 +368,19 @@ impl Drop for ImageRef {
             },
             ImageType::Swapchain { .. } => {}
         }
+    }
+}
+
+impl Device {
+    pub fn create_image(
+        &self,
+        name: Option<&str>,
+        format: vk::Format,
+        width: u32,
+        height: u32,
+        image_usage: vk::ImageUsageFlags,
+        location: gpu_allocator::MemoryLocation,
+    ) -> Image {
+        Image::new(name, self, format, width, height, image_usage, location)
     }
 }

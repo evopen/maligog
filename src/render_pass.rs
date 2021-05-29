@@ -18,7 +18,10 @@ impl RenderPass {
         unsafe {
             let handle = device.inner.handle.create_render_pass(&info, None).unwrap();
             Self {
-                inner: Arc::new(RenderPassRef { handle, device }),
+                inner: Arc::new(RenderPassRef {
+                    handle,
+                    device: device.clone(),
+                }),
             }
         }
     }

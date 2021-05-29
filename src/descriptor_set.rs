@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::collections::BTreeMap;
+use std::ffi::CString;
 use std::sync::Arc;
 
 use ash::vk;
@@ -21,8 +24,8 @@ pub struct DescriptorSet {
 impl DescriptorSet {
     pub fn new(
         name: Option<&str>,
-        descriptor_pool: Arc<DescriptorPool>,
-        descriptor_set_layout: Arc<DescriptorSetLayout>,
+        descriptor_pool: DescriptorPool,
+        descriptor_set_layout: DescriptorSetLayout,
     ) -> Self {
         let device = &descriptor_pool.device;
         let info = vk::DescriptorSetAllocateInfo::builder()
@@ -51,10 +54,12 @@ impl DescriptorSet {
             }
 
             Self {
-                handle,
-                descriptor_pool,
-                descriptor_set_layout,
-                resources: RefCell::new(BTreeMap::new()),
+                inner: Arc::new(DescriptorSetRef {
+                    handle,
+                    descriptor_pool,
+                    descriptor_set_layout,
+                    resources: RefCell::new(BTreeMap::new()),
+                }),
             }
         }
     }
