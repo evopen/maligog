@@ -65,30 +65,15 @@ impl PhysicalDevice {
             .collect::<Vec<_>>()
     }
 
-    pub fn create_device(
-        &self,
-        queues: &[(&QueueFamilyProperties, &[f32])],
-    ) -> (Device, Vec<QueueFamily>) {
+    pub fn create_device(&self, queues: &[(&QueueFamilyProperties, &[f32])]) -> Device {
         let device = Device::new(
             self.instance.clone(),
             self.clone(),
             &DeviceFeatures {},
             &self.supported_device_extensions(),
-            queues,
         );
-        let mut queue_families = Vec::with_capacity(queues.len());
-        for (property, priorities) in queues {
-            let mut queue_family = QueueFamily {
-                property: (*property).clone(),
-                queues: Vec::new(),
-            };
-            for index in 0..priorities.len() as u32 {
-                let queue = Queue::new(&device, &&property, index);
-                queue_family.queues.push(queue);
-            }
-            queue_families.push(queue_family);
-        }
-        (device, queue_families)
+
+        device
     }
     pub fn name(&self) -> &str {
         self.name.as_str()
@@ -96,6 +81,30 @@ impl PhysicalDevice {
 
     pub fn queue_families(&self) -> &[QueueFamilyProperties] {
         self.queue_families.as_slice()
+    }
+
+    pub(crate) fn graphics_queue_family(&self) -> QueueFamilyProperties {
+        self.queue_families
+            .iter()
+            .find(|qf| qf.support_graphics)
+            .unwrap()
+            .to_owned()
+    }
+
+    pub(crate) fn transfer_queue_family(&self) -> QueueFamilyProperties {
+        self.queue_families
+            .iter()
+            .find(|qf| qf.support_transfer && !qf.support_graphics && !qf.support_compute)
+            .unwrap()
+            .to_owned()
+    }
+
+    pub(crate) fn compute_queue_family(&self) -> QueueFamilyProperties {
+        self.queue_families
+            .iter()
+            .find(|qf| qf.support_compute && !qf.support_graphics)
+            .unwrap()
+            .to_owned()
     }
 }
 

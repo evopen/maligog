@@ -13,7 +13,9 @@ use crate::command_pool::CommandPool;
 use crate::instance::Instance;
 use crate::name;
 use crate::physical_device::PhysicalDevice;
+use crate::queue;
 use crate::queue::Queue;
+use crate::queue_family::QueueFamily;
 use crate::queue_family::QueueFamilyProperties;
 use crate::CommandBuffer;
 
@@ -26,9 +28,10 @@ pub(crate) struct DeviceRef {
     pub(crate) swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
     pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
+    graphics_queue: Queue,
+    transfer_queue: Queue,
+    compute_queue: Queue,
     command_pool: ThreadLocal<RefCell<BTreeMap<u32, CommandPool>>>,
-    transfer_queue_handle: vk::Queue,
-    pub(crate) transfer_queue_family_index: u32,
 }
 
 #[derive(Clone)]
@@ -42,26 +45,27 @@ impl Device {
         pdevice: PhysicalDevice,
         _device_features: &DeviceFeatures,
         device_extensions: &[name::device::Extension],
-        queues: &[(&QueueFamilyProperties, &[f32])],
     ) -> Self {
         unsafe {
+            let graphics_queue_family_properties = pdevice.graphics_queue_family();
+            let transfer_queue_family_properties = pdevice.transfer_queue_family();
+            let compute_queue_family_properties = pdevice.compute_queue_family();
             let mut queue_infos = Vec::new();
-            for (family, priorities) in queues {
-                queue_infos.push(
-                    vk::DeviceQueueCreateInfo::builder()
-                        .queue_family_index(family.index)
-                        .queue_priorities(&priorities)
-                        .build(),
-                )
-            }
-            let transfer_queue_family = pdevice
-                .queue_families
-                .iter()
-                .find(|f| f.support_transfer && !f.support_compute && !f.support_graphics)
-                .unwrap();
             queue_infos.push(
                 vk::DeviceQueueCreateInfo::builder()
-                    .queue_family_index(transfer_queue_family.index)
+                    .queue_family_index(graphics_queue_family_properties.index)
+                    .queue_priorities(&[1.0])
+                    .build(),
+            );
+            queue_infos.push(
+                vk::DeviceQueueCreateInfo::builder()
+                    .queue_family_index(compute_queue_family_properties.index)
+                    .queue_priorities(&[1.0])
+                    .build(),
+            );
+            queue_infos.push(
+                vk::DeviceQueueCreateInfo::builder()
+                    .queue_family_index(transfer_queue_family_properties.index)
                     .queue_priorities(&[1.0])
                     .build(),
             );
@@ -167,20 +171,23 @@ impl Device {
                         log_stack_traces: false,
                     },
                 });
-            let transfer_queue_handle = handle.get_device_queue(transfer_queue_family.index, 0);
-            let transfer_queue_family_index = transfer_queue_family.index;
+
+            let graphics_queue = Queue::new(&handle, &graphics_queue_family_properties, 0);
+            let compute_queue = Queue::new(&handle, &compute_queue_family_properties, 0);
+            let transfer_queue = Queue::new(&handle, &transfer_queue_family_properties, 0);
 
             Self {
                 inner: Arc::new(DeviceRef {
                     handle,
                     pdevice,
+                    graphics_queue,
+                    compute_queue,
+                    transfer_queue,
                     acceleration_structure_loader,
                     swapchain_loader,
                     ray_tracing_pipeline_loader,
                     allocator: Mutex::new(ManuallyDrop::new(allocator)),
                     command_pool: ThreadLocal::new(),
-                    transfer_queue_handle,
-                    transfer_queue_family_index,
                 }),
             }
         }
@@ -206,6 +213,18 @@ impl Device {
     //     let command_pool = self.command_pool();
     //     let a = command_pool.allocate_command_buffer();
     // }
+
+    pub fn find_transfer_queue_family_index(&self) -> u32 {
+        self.inner
+            .transfer_queue
+            .inner
+            .queue_family_properties
+            .index
+    }
+
+    pub fn transfer_queue(&self) -> Queue {
+        self.inner.transfer_queue.clone()
+    }
 }
 
 impl Drop for DeviceRef {
@@ -245,6 +264,6 @@ fn test_create_command_buffer() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let (device, _) = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
     // device.allocate_command_buffer();
 }

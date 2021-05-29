@@ -8,8 +8,8 @@ use crate::CommandBuffer;
 
 pub(crate) struct QueueRef {
     handle: vk::Queue,
-    queue_family_properties: QueueFamilyProperties,
-    device: Device,
+    pub(crate) queue_family_properties: QueueFamilyProperties,
+    device: ash::Device,
     command_buffers: Vec<CommandBuffer>,
 }
 
@@ -20,15 +20,12 @@ pub struct Queue {
 
 impl Queue {
     pub(crate) fn new(
-        device: &Device,
+        device: &ash::Device,
         queue_family_properties: &QueueFamilyProperties,
         queue_index: u32,
     ) -> Self {
         unsafe {
-            let handle = device
-                .inner
-                .handle
-                .get_device_queue(queue_family_properties.index, queue_index);
+            let handle = device.get_device_queue(queue_family_properties.index, queue_index);
             Self {
                 inner: Arc::new(QueueRef {
                     handle,
@@ -50,12 +47,10 @@ impl Queue {
             let fence_handle = self
                 .inner
                 .device
-                .handle()
                 .create_fence(&vk::FenceCreateInfo::builder().build(), None)
                 .unwrap();
             self.inner
                 .device
-                .handle()
                 .queue_submit(
                     self.inner.handle,
                     &[vk::SubmitInfo::builder()
@@ -66,7 +61,6 @@ impl Queue {
                 .unwrap();
             self.inner
                 .device
-                .handle()
                 .wait_for_fences(&[fence_handle], true, std::u64::MAX);
         }
     }

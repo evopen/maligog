@@ -17,6 +17,10 @@ impl QueueFamilyProperties {
     pub fn support_compute(&self) -> bool {
         self.support_compute
     }
+
+    pub fn support_transfer(&self) -> bool {
+        self.support_transfer
+    }
 }
 
 #[derive(Clone)]

@@ -147,7 +147,7 @@ impl Buffer {
                     gpu_allocator::MemoryLocation::CpuToGpu,
                 );
                 let mut cmd_buf =
-                    device.create_command_buffer(device.inner.transfer_queue_family_index);
+                    device.create_command_buffer(device.find_transfer_queue_family_index());
                 cmd_buf.encode(|recorder| {
                     unsafe {
                         recorder.copy_buffer_raw(
@@ -157,6 +157,7 @@ impl Buffer {
                         )
                     }
                 });
+                device.transfer_queue().submit_blocking(&[cmd_buf]);
             }
         }
         drop(guard);
@@ -274,7 +275,7 @@ fn test_create_buffer() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let (device, _) = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
     let buffer = device.create_buffer(
         None,
         123,
