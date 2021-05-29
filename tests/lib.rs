@@ -1,5 +1,9 @@
 use maligog::vk;
+
+#[cfg(unix)]
 use winit::platform::unix::EventLoopExtUnix;
+#[cfg(windows)]
+use winit::platform::windows::EventLoopExtWindows;
 
 #[test]
 fn test_general() {
@@ -8,14 +12,9 @@ fn test_general() {
         .try_init()
         .ok();
     let entry = maligog::Entry::new().unwrap();
-    let instance = entry.create_instance(
-        &[],
-        &[
-            maligog::name::instance::Extension::ExtDebugUtils,
-            maligog::name::instance::Extension::KhrSurface,
-            maligog::name::instance::Extension::KhrXlibSurface,
-        ],
-    );
+    let mut required_extensions = maligog::Surface::required_extensions();
+    required_extensions.push(maligog::name::instance::Extension::ExtDebugUtils);
+    let instance = entry.create_instance(&[], &&required_extensions);
     let pdevice = instance
         .enumerate_physical_device()
         .first()

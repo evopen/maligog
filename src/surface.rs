@@ -44,9 +44,15 @@ impl Surface {
     pub fn required_extensions() -> Vec<crate::name::instance::Extension> {
         cfg_if::cfg_if! {
             if #[cfg(unix)] {
-                return vec![crate::name::instance::Extension::KhrSurface,
-                            crate::name::instance::Extension::KhrXlibSurface
-                            ];
+                return vec![
+                    crate::name::instance::Extension::KhrSurface,
+                    crate::name::instance::Extension::KhrXlibSurface,
+                ];
+            } else if #[cfg(windows)] {
+                return vec![
+                    crate::name::instance::Extension::KhrSurface,
+                    crate::name::instance::Extension::KhrWin32Surface,
+                ];
             }
         }
     }
