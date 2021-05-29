@@ -198,6 +198,10 @@ impl Device {
         CommandBuffer::new(self.clone(), self.command_pool(queue_family_index))
     }
 
+    pub(crate) fn handle(&self) -> &ash::Device {
+        &self.inner.handle
+    }
+
     // pub fn allocate_command_buffer(&self) {
     //     let command_pool = self.command_pool();
     //     let a = command_pool.allocate_command_buffer();
