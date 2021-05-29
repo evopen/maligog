@@ -56,9 +56,11 @@ impl PhysicalDevice {
     pub fn supported_device_extensions(&self) -> Vec<name::device::Extension> {
         self.supported_device_extensions_raw()
             .iter()
-            .filter_map(|ext| match name::device::Extension::from_str(ext) {
-                Ok(ext) => Some(ext),
-                Err(_) => None,
+            .filter_map(|ext| {
+                match name::device::Extension::from_str(ext) {
+                    Ok(ext) => Some(ext),
+                    Err(_) => None,
+                }
             })
             .collect::<Vec<_>>()
     }
