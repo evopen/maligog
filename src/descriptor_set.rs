@@ -9,6 +9,7 @@ use crate::buffer::Buffer;
 use crate::descriptor::DescriptorSetLayout;
 use crate::descriptor_pool::DescriptorPool;
 use crate::sampler::Sampler;
+use crate::ImageView;
 
 pub struct DescriptorSetRef {
     handle: vk::DescriptorSet,
@@ -174,7 +175,7 @@ impl std::fmt::Debug for DescriptorSet {
 
 pub enum DescriptorSetUpdateDetail {
     Buffer { buffer: Buffer, offset: u64 },
-    Image(Arc<ImageView>),
+    Image(ImageView),
     Sampler(Sampler),
     AccelerationStructure(Arc<AccelerationStructure>),
 }

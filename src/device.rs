@@ -24,7 +24,7 @@ pub struct DeviceFeatures {}
 pub(crate) struct DeviceRef {
     pub handle: ash::Device,
     pub pdevice: PhysicalDevice,
-    acceleration_structure_loader: ash::extensions::khr::AccelerationStructure,
+    pub(crate) acceleration_structure_loader: ash::extensions::khr::AccelerationStructure,
     pub(crate) swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
     pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
@@ -222,8 +222,20 @@ impl Device {
             .index
     }
 
+    pub fn graphics_queue_family_index(&self) -> u32 {
+        self.inner
+            .graphics_queue
+            .inner
+            .queue_family_properties
+            .index
+    }
+
     pub fn transfer_queue(&self) -> Queue {
         self.inner.transfer_queue.clone()
+    }
+
+    pub fn graphics_queue(&self) -> Queue {
+        self.inner.graphics_queue.clone()
     }
 }
 

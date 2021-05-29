@@ -7,6 +7,7 @@ mod command_recorder;
 pub mod descriptor;
 mod descriptor_pool;
 // mod descriptor_set;
+mod acceleration_structure;
 pub mod device;
 pub mod entry;
 mod fence;
@@ -28,6 +29,7 @@ mod swapchain;
 
 mod shader_module;
 
+pub use acceleration_structure::AccelerationStructure;
 pub use buffer::Buffer;
 pub use command_buffer::CommandBuffer;
 pub use descriptor::DescriptorSetLayoutBinding;
@@ -36,6 +38,7 @@ pub use device::Device;
 pub use entry::Entry;
 pub use fence::Fence;
 pub use image::Image;
+pub use image_view::ImageView;
 pub use instance::Instance;
 pub use render_pass::RenderPass;
 pub use semaphore::{BinarySemaphore, TimelineSemaphore};

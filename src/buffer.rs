@@ -187,6 +187,10 @@ impl Buffer {
         self.inner.size
     }
 
+    pub fn handle(&self) -> vk::Buffer {
+        self.inner.handle
+    }
+
     // pub fn is_device_local(&self) -> bool {
     //     self.property_flags & vk::MemoryPropertyFlags::DEVICE_LOCAL
     //         != vk::MemoryPropertyFlags::empty()

@@ -1,4 +1,4 @@
-use crate::{Buffer, CommandBuffer};
+use crate::{Buffer, CommandBuffer, Device};
 use ash::vk;
 
 pub struct CommandRecorder<'a> {
@@ -30,7 +30,28 @@ impl<'a> CommandRecorder<'a> {
         }
     }
 
+    pub(crate) fn build_acceleration_structure_raw(
+        &mut self,
+        info: vk::AccelerationStructureBuildGeometryInfoKHR,
+        build_range_infos: &[vk::AccelerationStructureBuildRangeInfoKHR],
+    ) {
+        unsafe {
+            self.device()
+                .inner
+                .acceleration_structure_loader
+                .cmd_build_acceleration_structures(
+                    self.command_buffer.handle,
+                    &[info],
+                    &[build_range_infos],
+                );
+        }
+    }
+
     fn device_handle(&self) -> &ash::Device {
         &self.command_buffer.device.inner.handle
+    }
+
+    fn device(&self) -> &Device {
+        &self.command_buffer.device
     }
 }
