@@ -117,8 +117,32 @@ impl Swapchain {
                 )
                 .unwrap();
             match sub {
-                true => Ok(index),
-                false => Err(index),
+                true => Err(index),
+                false => Ok(index),
+            }
+        }
+    }
+
+    pub fn present(&self, index: u32, wait_semaphore: &[&BinarySemaphore]) {
+        let wait_handles = wait_semaphore
+            .iter()
+            .map(|s| s.inner.handle)
+            .collect::<Vec<_>>();
+
+        let info = vk::PresentInfoKHR::builder()
+            .swapchains(&[self.handle()])
+            .wait_semaphores(wait_handles.as_slice())
+            .image_indices(&[index])
+            .build();
+        unsafe {
+            if let Err(e) = self
+                .inner
+                .device
+                .inner
+                .swapchain_loader
+                .queue_present(self.inner.device.graphics_queue().inner.handle, &info)
+            {
+                log::warn!("{:?}", e);
             }
         }
     }

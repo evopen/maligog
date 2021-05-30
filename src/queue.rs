@@ -7,7 +7,7 @@ use crate::queue_family::QueueFamilyProperties;
 use crate::CommandBuffer;
 
 pub(crate) struct QueueRef {
-    handle: vk::Queue,
+    pub(crate) handle: vk::Queue,
     pub(crate) queue_family_properties: QueueFamilyProperties,
     device: ash::Device,
     command_buffers: Vec<CommandBuffer>,

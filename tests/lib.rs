@@ -124,5 +124,9 @@ fn test_general() {
             *control_flow = winit::event_loop::ControlFlow::Poll;
         }
         frame_counter += 1;
+        let index = engine.swapchain.acquire_next_image().unwrap();
+        engine
+            .swapchain
+            .present(index, &[&engine.swapchain.image_available_semaphore()]);
     });
 }
