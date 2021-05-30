@@ -41,6 +41,7 @@ pub use image::Image;
 pub use image_view::ImageView;
 pub use instance::Instance;
 pub use render_pass::RenderPass;
+pub use sampler::Sampler;
 pub use semaphore::{BinarySemaphore, TimelineSemaphore};
 pub use shader_module::ShaderModule;
 pub use shader_stage::ShaderStage;

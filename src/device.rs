@@ -230,12 +230,12 @@ impl Device {
             .index
     }
 
-    pub fn transfer_queue(&self) -> Queue {
-        self.inner.transfer_queue.clone()
+    pub fn transfer_queue(&self) -> &Queue {
+        &self.inner.transfer_queue
     }
 
-    pub fn graphics_queue(&self) -> Queue {
-        self.inner.graphics_queue.clone()
+    pub fn graphics_queue(&self) -> &Queue {
+        &self.inner.graphics_queue
     }
 }
 

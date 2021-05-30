@@ -23,7 +23,6 @@ impl QueueFamilyProperties {
     }
 }
 
-#[derive(Clone)]
 pub struct QueueFamily {
     pub(crate) property: QueueFamilyProperties,
     pub queues: Vec<Queue>,

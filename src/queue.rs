@@ -13,7 +13,6 @@ pub(crate) struct QueueRef {
     command_buffers: Vec<CommandBuffer>,
 }
 
-#[derive(Clone)]
 pub struct Queue {
     pub(crate) inner: Arc<QueueRef>,
 }
