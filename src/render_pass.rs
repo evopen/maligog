@@ -9,6 +9,7 @@ pub(crate) struct RenderPassRef {
     device: Device,
 }
 
+#[derive(Clone)]
 pub struct RenderPass {
     pub(crate) inner: Arc<RenderPassRef>,
 }

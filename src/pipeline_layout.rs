@@ -1,7 +1,7 @@
 use std::ffi::CString;
 use std::sync::Arc;
 
-use crate::descriptor::DescriptorSetLayout;
+use crate::DescriptorSetLayout;
 use crate::Device;
 use ash::vk;
 use ash::vk::Handle;

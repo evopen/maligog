@@ -9,6 +9,7 @@ pub(crate) struct ShaderModuleRef {
     device: Device,
 }
 
+#[derive(Clone)]
 pub struct ShaderModule {
     pub(crate) inner: Arc<ShaderModuleRef>,
 }
