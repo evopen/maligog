@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::ffi::CString;
 use std::sync::Arc;
 
@@ -9,13 +10,14 @@ pub struct DescriptorSetLayoutBinding {
     pub binding: u32,
     pub descriptor_type: DescriptorType,
     pub stage_flags: vk::ShaderStageFlags,
+    pub descriptor_count: u32,
 }
 
 pub(crate) struct DescriptorSetLayoutRef {
     pub(crate) handle: vk::DescriptorSetLayout,
     device: Device,
     bindings: Vec<DescriptorSetLayoutBinding>,
-    vk_bindings: Vec<vk::DescriptorSetLayoutBinding>,
+    pub(crate) vk_bindings: BTreeMap<u32, vk::DescriptorSetLayoutBinding>,
 }
 
 pub struct DescriptorSetLayout {
@@ -37,7 +39,7 @@ impl DescriptorSetLayout {
                             vk::DescriptorSetLayoutBinding::builder()
                                 .binding(binding.binding)
                                 .descriptor_type(vk::DescriptorType::SAMPLER)
-                                .descriptor_count(1)
+                                .descriptor_count(binding.descriptor_count)
                                 .immutable_samplers(&[sampler.inner.handle])
                                 .stage_flags(binding.stage_flags)
                                 .build()
@@ -45,7 +47,7 @@ impl DescriptorSetLayout {
                             vk::DescriptorSetLayoutBinding::builder()
                                 .binding(binding.binding)
                                 .descriptor_type(vk::DescriptorType::SAMPLER)
-                                .descriptor_count(1)
+                                .descriptor_count(binding.descriptor_count)
                                 .stage_flags(binding.stage_flags)
                                 .build()
                         }
@@ -54,7 +56,7 @@ impl DescriptorSetLayout {
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
-                            .descriptor_count(1)
+                            .descriptor_count(binding.descriptor_count)
                             .stage_flags(binding.stage_flags)
                             .build()
                     }
@@ -62,7 +64,7 @@ impl DescriptorSetLayout {
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                            .descriptor_count(1)
+                            .descriptor_count(binding.descriptor_count)
                             .stage_flags(binding.stage_flags)
                             .build()
                     }
@@ -70,7 +72,7 @@ impl DescriptorSetLayout {
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-                            .descriptor_count(1)
+                            .descriptor_count(binding.descriptor_count)
                             .stage_flags(binding.stage_flags)
                             .build()
                     }
@@ -78,7 +80,7 @@ impl DescriptorSetLayout {
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::ACCELERATION_STRUCTURE_KHR)
-                            .descriptor_count(1)
+                            .descriptor_count(binding.descriptor_count)
                             .stage_flags(binding.stage_flags)
                             .build()
                     }
@@ -86,7 +88,7 @@ impl DescriptorSetLayout {
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
-                            .descriptor_count(1)
+                            .descriptor_count(binding.descriptor_count)
                             .stage_flags(binding.stage_flags)
                             .build()
                     }
@@ -96,6 +98,10 @@ impl DescriptorSetLayout {
         let info = vk::DescriptorSetLayoutCreateInfo::builder()
             .bindings(vk_bindings.as_slice())
             .build();
+        let vk_bindings = vk_bindings
+            .iter()
+            .map(|b| (b.binding, b.to_owned()))
+            .collect::<BTreeMap<u32, vk::DescriptorSetLayoutBinding>>();
         unsafe {
             let handle = device
                 .inner
