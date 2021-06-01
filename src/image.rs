@@ -1,5 +1,8 @@
 use std::ffi::CString;
 use std::sync::Arc;
+use std::sync::LockResult;
+use std::sync::Mutex;
+use std::sync::MutexGuard;
 
 use ash::vk;
 use ash::vk::Handle;
@@ -11,7 +14,7 @@ use crate::TimelineSemaphore;
 
 enum ImageType {
     Allocated {
-        allocation: gpu_allocator::SubAllocation,
+        allocation: Mutex<gpu_allocator::SubAllocation>,
     },
     FromHandle,
 }
@@ -117,7 +120,9 @@ impl Image {
                     .unwrap();
             }
 
-            let image_type = ImageType::Allocated { allocation };
+            let image_type = ImageType::Allocated {
+                allocation: Mutex::new(allocation),
+            };
 
             let layout = std::sync::atomic::AtomicI32::new(vk::ImageLayout::UNDEFINED.as_raw());
 
@@ -132,6 +137,81 @@ impl Image {
                     format,
                 }),
             }
+        }
+    }
+
+    pub fn new_with_data<I: AsRef<[u8]>>(
+        name: Option<&str>,
+        device: &Device,
+        format: vk::Format,
+        width: u32,
+        height: u32,
+        image_usage: vk::ImageUsageFlags,
+        location: gpu_allocator::MemoryLocation,
+        data: I,
+    ) -> Self {
+        let data = data.as_ref();
+        let mut image = Self::new(
+            name,
+            &device,
+            format,
+            width,
+            height,
+            image_usage | vk::ImageUsageFlags::TRANSFER_DST,
+            location,
+        );
+        let mut guard = image.lock_memory().unwrap().unwrap();
+        match guard.mapped_slice_mut() {
+            Some(mapped) => {
+                mapped[0..data.len()].copy_from_slice(data.as_ref());
+            }
+            None => {
+                let staging_buffer = device.create_buffer_init(
+                    Some("staging buffer"),
+                    data,
+                    vk::BufferUsageFlags::TRANSFER_SRC,
+                    gpu_allocator::MemoryLocation::CpuToGpu,
+                );
+                let mut cmd_buf =
+                    device.create_command_buffer(device.find_transfer_queue_family_index());
+                cmd_buf.encode(|recorder| {
+                    unsafe {
+                        recorder.copy_buffer_to_image_raw(
+                            &staging_buffer,
+                            &image,
+                            &[vk::BufferImageCopy::builder()
+                                .image_extent(vk::Extent3D {
+                                    width: image.width(),
+                                    height: image.height(),
+                                    depth: 1,
+                                })
+                                .image_offset(vk::Offset3D::default())
+                                .image_subresource(
+                                    vk::ImageSubresourceLayers::builder()
+                                        .layer_count(1)
+                                        .base_array_layer(0)
+                                        .aspect_mask(vk::ImageAspectFlags::COLOR)
+                                        .mip_level(0)
+                                        .build(),
+                                )
+                                .buffer_offset(0)
+                                .buffer_image_height(0)
+                                .buffer_row_length(0)
+                                .build()],
+                        )
+                    }
+                });
+                device.transfer_queue().submit_blocking(&[cmd_buf]);
+            }
+        }
+        drop(guard);
+        image
+    }
+
+    pub fn lock_memory(&self) -> Option<LockResult<MutexGuard<gpu_allocator::SubAllocation>>> {
+        match &self.inner.image_type {
+            ImageType::Allocated { allocation } => Some(allocation.lock()),
+            ImageType::FromHandle => None,
         }
     }
 
@@ -370,7 +450,7 @@ impl Drop for ImageRef {
                     .allocator
                     .lock()
                     .unwrap()
-                    .free(allocation.clone())
+                    .free(allocation.lock().unwrap().clone())
                     .unwrap();
                 self.device.inner.handle.destroy_image(self.handle, None);
             },
@@ -390,5 +470,30 @@ impl Device {
         location: gpu_allocator::MemoryLocation,
     ) -> Image {
         Image::new(name, self, format, width, height, image_usage, location)
+    }
+
+    pub fn create_image_init<D>(
+        &self,
+        name: Option<&str>,
+        format: vk::Format,
+        width: u32,
+        height: u32,
+        image_usage: vk::ImageUsageFlags,
+        location: gpu_allocator::MemoryLocation,
+        data: D,
+    ) -> Image
+    where
+        D: AsRef<[u8]>,
+    {
+        Image::new_with_data(
+            name,
+            self,
+            format,
+            width,
+            height,
+            image_usage,
+            location,
+            data,
+        )
     }
 }

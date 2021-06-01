@@ -1,6 +1,6 @@
 use crate::{
-    Buffer, CommandBuffer, DescriptorSet, Device, Framebuffer, GraphicsPipeline, PipelineLayout,
-    RenderPass,
+    Buffer, CommandBuffer, DescriptorSet, Device, Framebuffer, GraphicsPipeline, Image,
+    PipelineLayout, RenderPass,
 };
 use ash::vk;
 
@@ -124,6 +124,77 @@ impl<'a> CommandRecorder<'a> {
         // descriptor_sets
         //     .into_iter()
         //     .for_each(|set| self.command_buffer.resources.push(set));
+    }
+
+    pub fn set_scissor(&self, scissors: &[vk::Rect2D]) {
+        unsafe {
+            self.device()
+                .handle()
+                .cmd_set_scissor(self.command_buffer.handle, 0, scissors);
+        }
+    }
+
+    pub fn set_viewport(&self, viewport: vk::Viewport) {
+        unsafe {
+            self.device()
+                .handle()
+                .cmd_set_viewport(self.command_buffer.handle, 0, &[viewport]);
+        }
+    }
+
+    pub fn bind_index_buffer(&mut self, buffer: Buffer, offset: u64, index_type: vk::IndexType) {
+        unsafe {
+            self.device().handle().cmd_bind_index_buffer(
+                self.command_buffer.handle,
+                buffer.inner.handle,
+                offset,
+                index_type,
+            );
+        }
+        // self.command_buffer.resources.push(buffer);
+    }
+
+    pub fn bind_vertex_buffer(&mut self, buffers: Vec<Buffer>, offsets: &[u64]) {
+        let buffer_handles = buffers.iter().map(|b| b.inner.handle).collect::<Vec<_>>();
+        unsafe {
+            self.device().handle().cmd_bind_vertex_buffers(
+                self.command_buffer.handle,
+                0,
+                buffer_handles.as_slice(),
+                offsets,
+            );
+        }
+        // buffers
+        //     .into_iter()
+        //     .for_each(|b| self.command_buffer.resources.push(b));
+    }
+
+    pub fn draw_indexed(&self, index_count: u32, instance_count: u32) {
+        unsafe {
+            self.device().handle().cmd_draw_indexed(
+                self.command_buffer.handle,
+                index_count,
+                instance_count,
+                0,
+                0,
+                0,
+            );
+        }
+    }
+
+    pub(crate) unsafe fn copy_buffer_to_image_raw(
+        &mut self,
+        src: &Buffer,
+        dst: &Image,
+        regions: &[vk::BufferImageCopy],
+    ) {
+        self.device().handle().cmd_copy_buffer_to_image(
+            self.command_buffer.handle,
+            src.inner.handle,
+            dst.inner.handle,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            regions,
+        );
     }
 
     fn device_handle(&self) -> &ash::Device {
