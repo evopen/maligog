@@ -7,11 +7,11 @@ use crate::{Device, Image};
 pub struct ImageViewRef {
     pub(crate) device: Device,
     pub(crate) handle: vk::ImageView,
-    image: Image,
+    pub(crate) image: Image,
 }
 
 pub struct ImageView {
-    inner: Arc<ImageViewRef>,
+    pub(crate) inner: Arc<ImageViewRef>,
 }
 
 impl ImageView {

@@ -7,6 +7,8 @@ use std::sync::Arc;
 use ash::vk;
 use ash::vk::Handle;
 
+use anyhow::Context;
+
 use crate::buffer::Buffer;
 use crate::descriptor_pool::DescriptorPool;
 use crate::sampler::Sampler;
@@ -73,88 +75,88 @@ impl DescriptorSetRef {
         name: Option<&str>,
         descriptor_pool: DescriptorPool,
         descriptor_set_layout: DescriptorSetLayout,
+        update_infos: BTreeMap<u32, DescriptorUpdate>,
     ) -> Self {
-        let descriptor_set = Self::new(device, name, descriptor_pool, descriptor_set_layout);
-        Self {}
+        let mut descriptor_set = Self::new(device, name, descriptor_pool, descriptor_set_layout);
+        descriptor_set.update(update_infos);
+        descriptor_set
     }
 
-    pub fn update(&mut self, update_infos: &[DescriptorSetUpdateInfo]) {
-        let device = self.device;
-        let bindings = self.descriptor_set_layout.inner.vk_bindings;
+    pub(crate) fn update(&mut self, update_infos: BTreeMap<u32, DescriptorUpdate>) {
+        let device = &self.device;
+        let layout_bindings = &self.descriptor_set_layout.inner.vk_bindings;
 
         let mut buffer_infos = Vec::new();
         let mut image_infos = Vec::new();
         let mut tlas_handles = Vec::new();
         let mut write_acceleration_structure = None;
+        let mut writes = Vec::new();
 
-        let descriptor_writes = update_infos
-            .iter()
-            .map(|info| {
-                let write_builder = vk::WriteDescriptorSet::builder()
-                    .dst_set(self.handle)
-                    .dst_binding(info.binding)
-                    .descriptor_type(bindings.get(&info.binding).unwrap().descriptor_type);
-                let mut write = match info.details {
-                    DescriptorSetUpdateDetail::Buffer(buffers) => {
-                        self.resources.insert(info.binding, buffer.clone());
+        for (binding, info) in &update_infos {
+            let write_builder = vk::WriteDescriptorSet::builder()
+                .dst_set(self.handle)
+                .dst_binding(*binding)
+                .descriptor_type(
+                    layout_bindings
+                        .get(binding)
+                        .context(format!("layout does not contains binding {}", binding))
+                        .unwrap()
+                        .descriptor_type,
+                );
+
+            let write = match info {
+                DescriptorUpdate::Buffer(buffers) => {
+                    for (buffer, offset) in buffers {
                         buffer_infos.push(
                             vk::DescriptorBufferInfo::builder()
-                                .buffer(buffer.handle)
+                                .buffer(buffer.inner.handle)
                                 .offset(*offset)
                                 .range(vk::WHOLE_SIZE)
                                 .build(),
                         );
-
-                        write_builder
-                            .buffer_info(&buffer_infos.as_slice()[buffer_infos.len() - 1..])
-                            .build()
                     }
-                    DescriptorSetUpdateDetail::Image(image_view) => {
-                        self.resources.insert(info.binding, image_view.clone());
+                    write_builder.buffer_info(&buffer_infos).build()
+                }
+                DescriptorUpdate::Image(image_views) => {
+                    for image_view in image_views {
                         image_infos.push(
                             vk::DescriptorImageInfo::builder()
-                                .image_layout(image_view.image.layout())
-                                .image_view(image_view.handle)
+                                .image_layout(image_view.inner.image.layout())
+                                .image_view(image_view.inner.handle)
                                 .build(),
                         );
-                        write_builder
-                            .image_info(&image_infos.as_slice()[image_infos.len() - 1..])
-                            .build()
                     }
-                    DescriptorSetUpdateDetail::Sampler(sampler) => {
-                        self.resources.insert(info.binding, sampler.clone());
-                        image_infos.push(
-                            vk::DescriptorImageInfo::builder()
-                                .sampler(sampler.inner.handle)
-                                .build(),
-                        );
-                        write_builder
-                            .image_info(&image_infos.as_slice()[image_infos.len() - 1..])
-                            .build()
+                    write_builder.image_info(&image_infos).build()
+                }
+                DescriptorUpdate::Sampler(sampler) => {
+                    image_infos.push(
+                        vk::DescriptorImageInfo::builder()
+                            .sampler(sampler.inner.handle)
+                            .build(),
+                    );
+                    write_builder.image_info(&image_infos).build()
+                }
+                DescriptorUpdate::AccelerationStructure(acceleration_structures) => {
+                    for acc_struct in acceleration_structures {
+                        tlas_handles.push(acc_struct.inner.handle);
                     }
-                    DescriptorSetUpdateDetail::AccelerationStructure(tlas) => {
-                        self.resources.insert(info.binding, tlas.clone());
-                        tlas_handles.push(tlas.handle);
-                        write_acceleration_structure = Some(
-                            vk::WriteDescriptorSetAccelerationStructureKHR::builder()
-                                .acceleration_structures(tlas_handles.as_slice())
-                                .build(),
-                        );
-                        write_builder
-                            .push_next(write_acceleration_structure.as_mut().unwrap())
-                            .build()
-                    }
-                };
+                    write_acceleration_structure = Some(
+                        vk::WriteDescriptorSetAccelerationStructureKHR::builder()
+                            .acceleration_structures(tlas_handles.as_slice())
+                            .build(),
+                    );
+                    write_builder
+                        .push_next(write_acceleration_structure.as_mut().unwrap())
+                        .build()
+                }
+            };
+            writes.push(write);
+        }
 
-                write.descriptor_count = 1;
-                write
-            })
-            .collect::<Vec<_>>();
-        assert_eq!(descriptor_writes.len(), update_infos.len());
         unsafe {
             device
                 .handle()
-                .update_descriptor_sets(descriptor_writes.as_slice(), &[]);
+                .update_descriptor_sets(writes.as_slice(), &[]);
         }
     }
 }
@@ -288,16 +290,11 @@ impl std::fmt::Debug for DescriptorSet {
     }
 }
 
-pub enum DescriptorSetUpdateDetail {
+pub enum DescriptorUpdate {
     Buffer(Vec<(Buffer, u64)>), // buffer and offset
     Image(Vec<ImageView>),
     Sampler(Sampler),
     AccelerationStructure(Vec<AccelerationStructure>),
-}
-
-pub struct DescriptorSetUpdateInfo {
-    pub binding: u32,
-    pub details: DescriptorSetUpdateDetail,
 }
 
 impl Drop for DescriptorSetRef {

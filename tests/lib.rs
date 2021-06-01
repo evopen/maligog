@@ -66,6 +66,7 @@ impl Engine {
                 binding: 0,
                 descriptor_type: maligog::DescriptorType::UniformBuffer,
                 stage_flags: maligog::ShaderStageFlags::VERTEX,
+                descriptor_count: 1,
             }],
         );
 

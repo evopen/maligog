@@ -7,11 +7,15 @@ use ash::vk::Handle;
 use crate::CommandBuffer;
 use crate::{Buffer, Device};
 
-pub struct AccelerationStructure {
-    handle: vk::AccelerationStructureKHR,
+pub(crate) struct AccelerationStructureRef {
+    pub(crate) handle: vk::AccelerationStructureKHR,
     as_buffer: Buffer,
     device_address: u64,
     device: Device,
+}
+
+pub struct AccelerationStructure {
+    pub(crate) inner: Arc<AccelerationStructureRef>,
 }
 
 impl AccelerationStructure {
@@ -125,10 +129,12 @@ impl AccelerationStructure {
                         .build(),
                 );
             let result = Self {
-                handle,
-                as_buffer,
-                device_address,
-                device: device.clone(),
+                inner: Arc::new(AccelerationStructureRef {
+                    handle,
+                    as_buffer,
+                    device_address,
+                    device: device.clone(),
+                }),
             };
 
             let mut command_buffer =
@@ -147,11 +153,11 @@ impl AccelerationStructure {
     }
 
     pub fn device_address(&self) -> u64 {
-        self.device_address
+        self.inner.device_address
     }
 }
 
-impl Drop for AccelerationStructure {
+impl Drop for AccelerationStructureRef {
     fn drop(&mut self) {
         unsafe {
             self.device
