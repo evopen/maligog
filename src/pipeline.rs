@@ -136,3 +136,13 @@ impl Device {
         )
     }
 }
+
+pub trait Pipeline {
+    fn layout(&self) -> PipelineLayout;
+}
+
+impl Pipeline for GraphicsPipeline {
+    fn layout(&self) -> PipelineLayout {
+        self.inner.layout.clone()
+    }
+}

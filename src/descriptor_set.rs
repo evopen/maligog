@@ -162,6 +162,7 @@ impl DescriptorSetRef {
     }
 }
 
+#[derive(Clone)]
 pub struct DescriptorSet {
     pub(crate) inner: Arc<DescriptorSetRef>,
 }

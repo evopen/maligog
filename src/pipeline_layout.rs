@@ -11,6 +11,7 @@ pub(crate) struct PipelineLayoutRef {
     device: Device,
 }
 
+#[derive(Clone)]
 pub struct PipelineLayout {
     pub(crate) inner: Arc<PipelineLayoutRef>,
 }

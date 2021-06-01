@@ -7,6 +7,7 @@ use ash::vk;
 pub struct CommandRecorder<'a> {
     pub(crate) command_buffer: &'a CommandBuffer,
     pub(crate) bind_point: Option<vk::PipelineBindPoint>,
+    pub(crate) pipeline_layout: Option<PipelineLayout>,
 }
 
 impl<'a> CommandRecorder<'a> {
@@ -104,12 +105,7 @@ impl<'a> CommandRecorder<'a> {
         // self.command_buffer.resources.push(pipeline);
     }
 
-    fn bind_descriptor_sets(
-        &mut self,
-        descriptor_sets: Vec<DescriptorSet>,
-        layout: &PipelineLayout,
-        first_set: u32,
-    ) {
+    pub fn bind_descriptor_sets(&mut self, descriptor_sets: Vec<&DescriptorSet>, first_set: u32) {
         unsafe {
             let descriptor_set_handles = descriptor_sets
                 .iter()
@@ -118,7 +114,7 @@ impl<'a> CommandRecorder<'a> {
             self.device().handle().cmd_bind_descriptor_sets(
                 self.command_buffer.handle,
                 self.bind_point.unwrap(),
-                layout.inner.handle,
+                self.pipeline_layout.as_ref().unwrap().inner.handle,
                 first_set,
                 descriptor_set_handles.as_slice(),
                 &[],
