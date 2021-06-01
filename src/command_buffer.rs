@@ -10,7 +10,7 @@ pub struct CommandBuffer {
 }
 
 impl CommandBuffer {
-    pub(crate) fn new(device: Device, command_pool: CommandPool) -> Self {
+    pub(crate) fn new(device: &Device, command_pool: CommandPool) -> Self {
         unsafe {
             let handle = device
                 .inner
@@ -27,7 +27,10 @@ impl CommandBuffer {
                 .unwrap()
                 .to_owned();
 
-            Self { handle, device }
+            Self {
+                handle,
+                device: device.clone(),
+            }
         }
     }
 
@@ -69,6 +72,12 @@ impl CommandBuffer {
             func(&mut recorder);
             device.end_command_buffer(self.handle).unwrap();
         }
+    }
+}
+
+impl Device {
+    pub fn create_command_buffer(&self, queue_family_index: u32) -> CommandBuffer {
+        CommandBuffer::new(self, self.command_pool(queue_family_index))
     }
 }
 

@@ -439,6 +439,36 @@ impl Image {
     pub(crate) fn handle(&self) -> vk::Image {
         self.inner.handle
     }
+
+    pub fn set_layout(&self) {
+        let mut cmd_buf = self
+            .device()
+            .create_command_buffer(self.device().find_transfer_queue_family_index());
+        let image_memory_barrier = vk::ImageMemoryBarrier2KHR::builder()
+            .src_stage_mask(vk::PipelineStageFlags2KHR::ALL_COMMANDS)
+            .src_access_mask(vk::AccessFlags2KHR::MEMORY_READ | vk::AccessFlags2KHR::MEMORY_WRITE)
+            .dst_stage_mask(vk::PipelineStageFlags2KHR::ALL_COMMANDS)
+            .dst_access_mask(vk::AccessFlags2KHR::MEMORY_READ | vk::AccessFlags2KHR::MEMORY_WRITE)
+            .image(self.handle())
+            .subresource_range(
+                vk::ImageSubresourceRange::builder()
+                    .aspect_mask(vk::ImageAspectFlags::COLOR)
+                    .base_mip_level(0)
+                    .level_count(1)
+                    .base_array_layer(0)
+                    .layer_count(1)
+                    .build(),
+            )
+            .build();
+        cmd_buf.encode(|recorder| {
+            recorder.pipeline_barrier(
+                &vk::DependencyInfoKHR::builder()
+                    .image_memory_barriers(&[image_memory_barrier])
+                    .build(),
+            )
+        });
+        self.device().transfer_queue().submit_blocking(&[cmd_buf]);
+    }
 }
 
 impl Drop for ImageRef {

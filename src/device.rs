@@ -27,6 +27,7 @@ pub(crate) struct DeviceRef {
     pub(crate) acceleration_structure_loader: ash::extensions::khr::AccelerationStructure,
     pub(crate) swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
+    synchronization2_loader: ash::extensions::khr::Synchronization2,
     pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
     graphics_queue: Queue,
     transfer_queue: Queue,
@@ -149,6 +150,11 @@ impl Device {
                 &handle,
             );
 
+            let synchronization2_loader = ash::extensions::khr::Synchronization2::new(
+                &pdevice.instance.inner.handle,
+                &handle,
+            );
+
             let swapchain_loader =
                 ash::extensions::khr::Swapchain::new(&pdevice.instance.inner.handle, &handle);
 
@@ -184,6 +190,7 @@ impl Device {
                     compute_queue,
                     transfer_queue,
                     acceleration_structure_loader,
+                    synchronization2_loader,
                     swapchain_loader,
                     ray_tracing_pipeline_loader,
                     allocator: Mutex::new(ManuallyDrop::new(allocator)),
@@ -199,10 +206,6 @@ impl Device {
             .entry(queue_family_index)
             .or_insert(CommandPool::new(self.clone(), queue_family_index));
         pool.clone()
-    }
-
-    pub fn create_command_buffer(&self, queue_family_index: u32) -> CommandBuffer {
-        CommandBuffer::new(self.clone(), self.command_pool(queue_family_index))
     }
 
     pub(crate) fn handle(&self) -> &ash::Device {
@@ -242,6 +245,10 @@ impl Device {
         unsafe {
             self.handle().device_wait_idle();
         }
+    }
+
+    pub fn synchronization2_loader(&self) -> &ash::extensions::khr::Synchronization2 {
+        &self.inner.synchronization2_loader
     }
 }
 

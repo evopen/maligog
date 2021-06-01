@@ -197,6 +197,14 @@ impl<'a> CommandRecorder<'a> {
         );
     }
 
+    pub(crate) fn pipeline_barrier(&mut self, dependency_info: &vk::DependencyInfoKHR) {
+        unsafe {
+            self.device()
+                .synchronization2_loader()
+                .cmd_pipeline_barrier2(self.command_buffer.handle, dependency_info);
+        }
+    }
+
     fn device_handle(&self) -> &ash::Device {
         &self.command_buffer.device.inner.handle
     }
