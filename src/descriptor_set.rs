@@ -20,7 +20,7 @@ use crate::Device;
 use crate::ImageView;
 
 pub struct DescriptorSetRef {
-    handle: vk::DescriptorSet,
+    pub(crate) handle: vk::DescriptorSet,
     device: Device,
     descriptor_pool: DescriptorPool,
     descriptor_set_layout: DescriptorSetLayout,
@@ -163,7 +163,7 @@ impl DescriptorSetRef {
 }
 
 pub struct DescriptorSet {
-    inner: Arc<DescriptorSetRef>,
+    pub(crate) inner: Arc<DescriptorSetRef>,
 }
 
 impl DescriptorSet {

@@ -10,7 +10,7 @@ use crate::RenderPass;
 use crate::ShaderStage;
 
 pub struct GraphicsPipelineRef {
-    handle: vk::Pipeline,
+    pub(crate) handle: vk::Pipeline,
     layout: PipelineLayout,
     stages: Vec<ShaderStage>,
     render_pass: RenderPass,
@@ -18,7 +18,7 @@ pub struct GraphicsPipelineRef {
 }
 
 pub struct GraphicsPipeline {
-    inner: Arc<GraphicsPipelineRef>,
+    pub(crate) inner: Arc<GraphicsPipelineRef>,
 }
 
 impl GraphicsPipeline {

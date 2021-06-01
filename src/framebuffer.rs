@@ -14,7 +14,7 @@ pub(crate) struct FramebufferRef {
 }
 
 pub struct Framebuffer {
-    inner: Arc<FramebufferRef>,
+    pub(crate) inner: Arc<FramebufferRef>,
 }
 
 impl Framebuffer {
@@ -23,7 +23,7 @@ impl Framebuffer {
         render_pass: RenderPass,
         width: u32,
         height: u32,
-        attachments: Vec<ImageView>,
+        attachments: Vec<&ImageView>,
     ) -> Self {
         unsafe {
             let attachment_handles = attachments
@@ -43,6 +43,7 @@ impl Framebuffer {
                     None,
                 )
                 .unwrap();
+            let attachments = attachments.into_iter().map(|att| att.to_owned()).collect();
             Self {
                 inner: Arc::new(FramebufferRef {
                     device: device.clone(),
@@ -55,6 +56,13 @@ impl Framebuffer {
             }
         }
     }
+
+    pub fn width(&self) -> u32 {
+        self.inner.width
+    }
+    pub fn height(&self) -> u32 {
+        self.inner.height
+    }
 }
 
 impl Drop for FramebufferRef {
@@ -62,5 +70,17 @@ impl Drop for FramebufferRef {
         unsafe {
             self.device.handle().destroy_framebuffer(self.handle, None);
         }
+    }
+}
+
+impl Device {
+    pub fn create_framebuffer(
+        &self,
+        render_pass: RenderPass,
+        width: u32,
+        height: u32,
+        attachments: Vec<&ImageView>,
+    ) -> Framebuffer {
+        Framebuffer::new(self, render_pass, width, height, attachments)
     }
 }

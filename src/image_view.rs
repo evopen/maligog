@@ -10,6 +10,7 @@ pub struct ImageViewRef {
     pub(crate) image: Image,
 }
 
+#[derive(Clone)]
 pub struct ImageView {
     pub(crate) inner: Arc<ImageViewRef>,
 }

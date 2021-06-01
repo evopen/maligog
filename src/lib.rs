@@ -52,6 +52,7 @@ pub use image::Image;
 pub use image_view::ImageView;
 pub use instance::Instance;
 pub use pipeline::GraphicsPipeline;
+pub use pipeline_layout::PipelineLayout;
 pub use render_pass::RenderPass;
 pub use sampler::Sampler;
 pub use semaphore::{BinarySemaphore, TimelineSemaphore};

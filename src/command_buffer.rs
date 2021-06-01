@@ -63,6 +63,7 @@ impl CommandBuffer {
 
             let mut recorder = CommandRecorder {
                 command_buffer: self,
+                bind_point: None,
             };
             func(&mut recorder);
             device.end_command_buffer(self.handle).unwrap();
