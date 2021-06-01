@@ -20,6 +20,7 @@ pub(crate) struct DescriptorSetLayoutRef {
     pub(crate) vk_bindings: BTreeMap<u32, vk::DescriptorSetLayoutBinding>,
 }
 
+#[derive(Clone)]
 pub struct DescriptorSetLayout {
     pub(crate) inner: Arc<DescriptorSetLayoutRef>,
 }

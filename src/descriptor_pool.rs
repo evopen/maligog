@@ -9,6 +9,7 @@ pub(crate) struct DescriptorPoolRef {
     pub(crate) device: Device,
 }
 
+#[derive(Clone)]
 pub struct DescriptorPool {
     pub(crate) inner: Arc<DescriptorPoolRef>,
 }

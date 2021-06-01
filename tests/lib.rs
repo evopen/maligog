@@ -111,8 +111,8 @@ impl Engine {
 
         let descriptor_set = device.create_descriptor_set(
             Some("temp descriptor set"),
-            descriptor_pool,
-            descriptor_set_layout,
+            &descriptor_pool,
+            &descriptor_set_layout,
             btreemap! {
                 0 => maligog::DescriptorUpdate::Buffer(vec![BufferView{buffer: buffer1.clone(), offset: 0},
                                                             BufferView{buffer: buffer2.clone(), offset: 0}]),

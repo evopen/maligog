@@ -31,8 +31,8 @@ impl DescriptorSetRef {
     fn new(
         device: &Device,
         name: Option<&str>,
-        descriptor_pool: DescriptorPool,
-        descriptor_set_layout: DescriptorSetLayout,
+        descriptor_pool: &DescriptorPool,
+        descriptor_set_layout: &DescriptorSetLayout,
     ) -> Self {
         let info = vk::DescriptorSetAllocateInfo::builder()
             .set_layouts(&[descriptor_set_layout.inner.handle])
@@ -64,8 +64,8 @@ impl DescriptorSetRef {
             Self {
                 handle,
                 device: device.clone(),
-                descriptor_pool,
-                descriptor_set_layout,
+                descriptor_pool: descriptor_pool.clone(),
+                descriptor_set_layout: descriptor_set_layout.clone(),
                 resources: BTreeMap::new(),
             }
         }
@@ -74,8 +74,8 @@ impl DescriptorSetRef {
     fn new_with_descriptors(
         device: &Device,
         name: Option<&str>,
-        descriptor_pool: DescriptorPool,
-        descriptor_set_layout: DescriptorSetLayout,
+        descriptor_pool: &DescriptorPool,
+        descriptor_set_layout: &DescriptorSetLayout,
         update_infos: BTreeMap<u32, DescriptorUpdate>,
     ) -> Self {
         let mut descriptor_set = Self::new(device, name, descriptor_pool, descriptor_set_layout);
@@ -170,8 +170,8 @@ impl DescriptorSet {
     pub fn new(
         device: &Device,
         name: Option<&str>,
-        descriptor_pool: DescriptorPool,
-        descriptor_set_layout: DescriptorSetLayout,
+        descriptor_pool: &DescriptorPool,
+        descriptor_set_layout: &DescriptorSetLayout,
     ) -> Self {
         Self {
             inner: Arc::new(DescriptorSetRef::new(
@@ -217,8 +217,8 @@ impl Device {
     pub fn allocate_descriptor_set(
         &self,
         name: Option<&str>,
-        descriptor_pool: DescriptorPool,
-        descriptor_set_layout: DescriptorSetLayout,
+        descriptor_pool: &DescriptorPool,
+        descriptor_set_layout: &DescriptorSetLayout,
     ) -> DescriptorSet {
         DescriptorSet::new(self, name, descriptor_pool, descriptor_set_layout)
     }
@@ -226,8 +226,8 @@ impl Device {
     pub fn create_descriptor_set(
         &self,
         name: Option<&str>,
-        descriptor_pool: DescriptorPool,
-        descriptor_set_layout: DescriptorSetLayout,
+        descriptor_pool: &DescriptorPool,
+        descriptor_set_layout: &DescriptorSetLayout,
         descriptor_infos: BTreeMap<u32, DescriptorUpdate>,
     ) -> DescriptorSet {
         let descriptor_set_ref = DescriptorSetRef::new_with_descriptors(
