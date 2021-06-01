@@ -13,6 +13,7 @@ use crate::buffer::Buffer;
 use crate::descriptor_pool::DescriptorPool;
 use crate::sampler::Sampler;
 use crate::AccelerationStructure;
+use crate::BufferView;
 use crate::Descriptor;
 use crate::DescriptorSetLayout;
 use crate::Device;
@@ -105,12 +106,12 @@ impl DescriptorSetRef {
                 );
 
             let write = match info {
-                DescriptorUpdate::Buffer(buffers) => {
-                    for (buffer, offset) in buffers {
+                DescriptorUpdate::Buffer(buffer_views) => {
+                    for buffer_view in buffer_views {
                         buffer_infos.push(
                             vk::DescriptorBufferInfo::builder()
-                                .buffer(buffer.inner.handle)
-                                .offset(*offset)
+                                .buffer(buffer_view.buffer.handle())
+                                .offset(buffer_view.offset)
                                 .range(vk::WHOLE_SIZE)
                                 .build(),
                         );
@@ -192,7 +193,7 @@ impl std::fmt::Debug for DescriptorSet {
 }
 
 pub enum DescriptorUpdate {
-    Buffer(Vec<(Buffer, u64)>), // buffer and offset
+    Buffer(Vec<BufferView>), // buffer and offset
     Image(Vec<ImageView>),
     Sampler(Sampler),
     AccelerationStructure(Vec<AccelerationStructure>),

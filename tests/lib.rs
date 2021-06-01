@@ -4,6 +4,7 @@ use std::iter::FromIterator;
 use std::time::Duration;
 
 use maligog::vk;
+use maligog::BufferView;
 
 use maplit::btreemap;
 use winit::platform::run_return::EventLoopExtRunReturn;
@@ -113,7 +114,8 @@ impl Engine {
             descriptor_pool,
             descriptor_set_layout,
             btreemap! {
-                0 => maligog::DescriptorUpdate::Buffer(vec![(buffer1.clone(), 0), (buffer2.clone(), 0)]),
+                0 => maligog::DescriptorUpdate::Buffer(vec![BufferView{buffer: buffer1.clone(), offset: 0},
+                                                            BufferView{buffer: buffer2.clone(), offset: 0}]),
             },
         );
         Self {

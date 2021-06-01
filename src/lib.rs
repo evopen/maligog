@@ -2,6 +2,7 @@
 
 mod acceleration_structure;
 pub mod buffer;
+mod buffer_view;
 pub mod command_buffer;
 pub mod command_pool;
 mod command_recorder;
@@ -32,6 +33,7 @@ mod shader_module;
 
 pub use acceleration_structure::AccelerationStructure;
 pub use buffer::Buffer;
+pub use buffer_view::BufferView;
 pub use command_buffer::CommandBuffer;
 pub use descriptor::Descriptor;
 pub use descriptor::DescriptorType;
