@@ -18,6 +18,7 @@ pub(crate) struct BufferRef {
     location: gpu_allocator::MemoryLocation,
 }
 
+#[derive(Clone)]
 pub struct Buffer {
     pub(crate) inner: Arc<BufferRef>,
 }

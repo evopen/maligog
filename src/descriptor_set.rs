@@ -181,105 +181,6 @@ impl DescriptorSet {
             )),
         }
     }
-
-    // pub fn update(&self, update_infos: &[DescriptorSetUpdateInfo]) {
-    //     let device = self.inner.descriptor_pool.inner.device.clone();
-    //     let bindings = self.inner.descriptor_set_layout.vk_bindings.clone();
-
-    //     let mut buffer_infos = Vec::new();
-    //     let mut image_infos = Vec::new();
-    //     let mut tlas_handles = Vec::new();
-    //     let mut write_acceleration_structure = None;
-
-    //     let descriptor_writes = update_infos
-    //         .iter()
-    //         .map(|info| {
-    //             let write_builder = vk::WriteDescriptorSet::builder()
-    //                 .dst_set(self.handle)
-    //                 .dst_binding(info.binding)
-    //                 .descriptor_type(
-    //                     bindings
-    //                         .iter()
-    //                         .filter(|binding| binding.binding == info.binding)
-    //                         .map(|binding| binding.descriptor_type)
-    //                         .next()
-    //                         .unwrap(),
-    //                 );
-    //             let mut write = match info.detail.borrow() {
-    //                 DescriptorSetUpdateDetail::Buffer { buffer, offset } => {
-    //                     self.resources
-    //                         .try_borrow_mut()
-    //                         .unwrap()
-    //                         .insert(info.binding, buffer.clone());
-    //                     buffer_infos.push(
-    //                         vk::DescriptorBufferInfo::builder()
-    //                             .buffer(buffer.handle)
-    //                             .offset(*offset)
-    //                             .range(vk::WHOLE_SIZE)
-    //                             .build(),
-    //                     );
-
-    //                     write_builder
-    //                         .buffer_info(&buffer_infos.as_slice()[buffer_infos.len() - 1..])
-    //                         .build()
-    //                 }
-    //                 DescriptorSetUpdateDetail::Image(image_view) => {
-    //                     self.resources
-    //                         .try_borrow_mut()
-    //                         .unwrap()
-    //                         .insert(info.binding, image_view.clone());
-    //                     image_infos.push(
-    //                         vk::DescriptorImageInfo::builder()
-    //                             .image_layout(image_view.image.layout())
-    //                             .image_view(image_view.handle)
-    //                             .build(),
-    //                     );
-    //                     write_builder
-    //                         .image_info(&image_infos.as_slice()[image_infos.len() - 1..])
-    //                         .build()
-    //                 }
-    //                 DescriptorSetUpdateDetail::Sampler(sampler) => {
-    //                     self.resources
-    //                         .try_borrow_mut()
-    //                         .unwrap()
-    //                         .insert(info.binding, sampler.clone());
-    //                     image_infos.push(
-    //                         vk::DescriptorImageInfo::builder()
-    //                             .sampler(sampler.inner.handle)
-    //                             .build(),
-    //                     );
-    //                     write_builder
-    //                         .image_info(&image_infos.as_slice()[image_infos.len() - 1..])
-    //                         .build()
-    //                 }
-    //                 DescriptorSetUpdateDetail::AccelerationStructure(tlas) => {
-    //                     self.resources
-    //                         .try_borrow_mut()
-    //                         .unwrap()
-    //                         .insert(info.binding, tlas.clone());
-    //                     tlas_handles.push(tlas.handle);
-    //                     write_acceleration_structure = Some(
-    //                         vk::WriteDescriptorSetAccelerationStructureKHR::builder()
-    //                             .acceleration_structures(tlas_handles.as_slice())
-    //                             .build(),
-    //                     );
-    //                     write_builder
-    //                         .push_next(write_acceleration_structure.as_mut().unwrap())
-    //                         .build()
-    //                 }
-    //             };
-
-    //             write.descriptor_count = 1;
-    //             write
-    //         })
-    //         .collect::<Vec<_>>();
-    //     assert_eq!(descriptor_writes.len(), update_infos.len());
-    //     unsafe {
-    //         device
-    //             .handle
-    //             .update_descriptor_sets(descriptor_writes.as_slice(), &[]);
-    //     }
-    // }
 }
 
 impl std::fmt::Debug for DescriptorSet {
@@ -326,7 +227,17 @@ impl Device {
         name: Option<&str>,
         descriptor_pool: DescriptorPool,
         descriptor_set_layout: DescriptorSetLayout,
+        descriptor_infos: BTreeMap<u32, DescriptorUpdate>,
     ) -> DescriptorSet {
-        DescriptorSet::new(self, name, descriptor_pool, descriptor_set_layout)
+        let descriptor_set_ref = DescriptorSetRef::new_with_descriptors(
+            self,
+            name,
+            descriptor_pool,
+            descriptor_set_layout,
+            descriptor_infos,
+        );
+        DescriptorSet {
+            inner: Arc::new(descriptor_set_ref),
+        }
     }
 }

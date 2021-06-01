@@ -237,6 +237,12 @@ impl Device {
     pub fn graphics_queue(&self) -> &Queue {
         &self.inner.graphics_queue
     }
+
+    pub fn wait_idle(&self) {
+        unsafe {
+            self.handle().device_wait_idle();
+        }
+    }
 }
 
 impl Drop for DeviceRef {

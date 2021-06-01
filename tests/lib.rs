@@ -1,5 +1,11 @@
+use std::array::IntoIter;
+use std::collections::BTreeMap;
+use std::iter::FromIterator;
+use std::time::Duration;
+
 use maligog::vk;
 
+use maplit::btreemap;
 use winit::platform::run_return::EventLoopExtRunReturn;
 #[cfg(unix)]
 use winit::platform::unix::EventLoopExtUnix;
@@ -15,6 +21,7 @@ struct Engine {
     image: maligog::Image,
     swapchain: maligog::Swapchain,
     image_view: maligog::ImageView,
+    descriptor_set: maligog::DescriptorSet,
 }
 
 impl Engine {
@@ -90,7 +97,25 @@ impl Engine {
         );
         let image_view = image.create_view();
         let surface = instance.create_surface(window);
-        let swapchain = device.create_swapchain(surface, maligog::PresentModeKHR::IMMEDIATE);
+        let swapchain = device.create_swapchain(surface, maligog::PresentModeKHR::FIFO);
+        let descriptor_set_layout = device.create_descriptor_set_layout(
+            Some("temp descriptor set layout"),
+            &[maligog::DescriptorSetLayoutBinding {
+                binding: 0,
+                descriptor_type: maligog::DescriptorType::StorageBuffer,
+                stage_flags: maligog::ShaderStageFlags::ALL_GRAPHICS,
+                descriptor_count: 2,
+            }],
+        );
+
+        let descriptor_set = device.create_descriptor_set(
+            Some("temp descriptor set"),
+            descriptor_pool,
+            descriptor_set_layout,
+            btreemap! {
+                0 => maligog::DescriptorUpdate::Buffer(vec![(buffer1.clone(), 0), (buffer2.clone(), 0)]),
+            },
+        );
         Self {
             instance,
             device,
@@ -100,6 +125,7 @@ impl Engine {
             image,
             swapchain,
             image_view,
+            descriptor_set,
         }
     }
 }
@@ -119,7 +145,7 @@ fn test_general() {
 
     let mut frame_counter = 0;
     event_loop.run_return(|event, _, control_flow| {
-        if frame_counter > 3 {
+        if frame_counter > 5 {
             *control_flow = winit::event_loop::ControlFlow::Exit;
         } else {
             *control_flow = winit::event_loop::ControlFlow::Poll;
@@ -130,4 +156,5 @@ fn test_general() {
             .swapchain
             .present(index, &[&engine.swapchain.image_available_semaphore()]);
     });
+    engine.device.wait_idle();
 }

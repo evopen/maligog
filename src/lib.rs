@@ -35,6 +35,8 @@ pub use buffer::Buffer;
 pub use command_buffer::CommandBuffer;
 pub use descriptor::Descriptor;
 pub use descriptor::DescriptorType;
+pub use descriptor_set::DescriptorSet;
+pub use descriptor_set::DescriptorUpdate;
 pub use descriptor_set_layout::DescriptorSetLayout;
 pub use descriptor_set_layout::DescriptorSetLayoutBinding;
 pub use device::Device;
