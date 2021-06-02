@@ -96,6 +96,19 @@ impl Engine {
             maligog::ImageUsageFlags::STORAGE,
             maligog::MemoryLocation::GpuOnly,
         );
+        let image1 = device.create_image_init(
+            Some("initialized image"),
+            vk::Format::R8_UINT,
+            1,
+            1,
+            vk::ImageUsageFlags::empty(),
+            maligog::MemoryLocation::GpuOnly,
+            &[123],
+        );
+        image1.set_layout(
+            maligog::ImageLayout::UNDEFINED,
+            maligog::ImageLayout::GENERAL,
+        );
         let image_view = image.create_view();
         let surface = instance.create_surface(window);
         let swapchain = device.create_swapchain(surface, maligog::PresentModeKHR::FIFO);
