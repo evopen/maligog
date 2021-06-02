@@ -457,6 +457,8 @@ impl Image {
             .old_layout(old_layout)
             .new_layout(new_layout)
             .image(self.handle())
+            .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
             .subresource_range(
                 vk::ImageSubresourceRange::builder()
                     .aspect_mask(vk::ImageAspectFlags::COLOR)
