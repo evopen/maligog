@@ -56,8 +56,13 @@ impl Buffer {
                 .create_buffer(
                     &vk::BufferCreateInfo::builder()
                         .size(size.to_u64().unwrap())
-                        .usage(buffer_usage)
-                        .sharing_mode(vk::SharingMode::EXCLUSIVE),
+                        .usage(
+                            buffer_usage
+                                | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+                                | vk::BufferUsageFlags::TRANSFER_DST,
+                        )
+                        .sharing_mode(vk::SharingMode::CONCURRENT)
+                        .queue_family_indices(device.all_queue_family_indices()),
                     None,
                 )
                 .unwrap();
@@ -144,11 +149,11 @@ impl Buffer {
                 let staging_buffer = device.create_buffer_init(
                     Some("staging buffer"),
                     data,
-                    vk::BufferUsageFlags::empty(),
+                    vk::BufferUsageFlags::TRANSFER_SRC,
                     gpu_allocator::MemoryLocation::CpuToGpu,
                 );
                 let mut cmd_buf =
-                    device.create_command_buffer(device.find_transfer_queue_family_index());
+                    device.create_command_buffer(device.transfer_queue_family_index());
                 cmd_buf.encode(|recorder| {
                     unsafe {
                         recorder.copy_buffer_raw(

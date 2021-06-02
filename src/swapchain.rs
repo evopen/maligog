@@ -56,7 +56,8 @@ impl Swapchain {
                 .image_usage(
                     vk::ImageUsageFlags::COLOR_ATTACHMENT | vk::ImageUsageFlags::TRANSFER_DST,
                 )
-                .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
+                .image_sharing_mode(vk::SharingMode::CONCURRENT)
+                .queue_family_indices(device.all_queue_family_indices())
                 .pre_transform(vk::SurfaceTransformFlagsKHR::IDENTITY)
                 .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
                 .present_mode(present_mode)

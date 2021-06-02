@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::ffi::CString;
+use std::iter::FromIterator;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -33,6 +34,7 @@ pub(crate) struct DeviceRef {
     transfer_queue: Queue,
     compute_queue: Queue,
     command_pool: ThreadLocal<RefCell<BTreeMap<u32, CommandPool>>>,
+    all_queue_family_indices: Vec<u32>,
 }
 
 #[derive(Clone)]
@@ -183,6 +185,13 @@ impl Device {
             let graphics_queue = Queue::new(&handle, &graphics_queue_family_properties, 0);
             let compute_queue = Queue::new(&handle, &compute_queue_family_properties, 0);
             let transfer_queue = Queue::new(&handle, &transfer_queue_family_properties, 0);
+            let all_queue_family_indices = std::collections::BTreeSet::from_iter([
+                graphics_queue_family_properties.index,
+                compute_queue_family_properties.index,
+                transfer_queue_family_properties.index,
+            ])
+            .into_iter()
+            .collect();
 
             Self {
                 inner: Arc::new(DeviceRef {
@@ -197,6 +206,7 @@ impl Device {
                     ray_tracing_pipeline_loader,
                     allocator: Mutex::new(ManuallyDrop::new(allocator)),
                     command_pool: ThreadLocal::new(),
+                    all_queue_family_indices,
                 }),
             }
         }
@@ -219,7 +229,7 @@ impl Device {
     //     let a = command_pool.allocate_command_buffer();
     // }
 
-    pub fn find_transfer_queue_family_index(&self) -> u32 {
+    pub fn transfer_queue_family_index(&self) -> u32 {
         self.inner
             .transfer_queue
             .inner
@@ -233,6 +243,10 @@ impl Device {
             .inner
             .queue_family_properties
             .index
+    }
+
+    pub fn compute_queue_family_index(&self) -> u32 {
+        self.inner.compute_queue.inner.queue_family_properties.index
     }
 
     pub fn transfer_queue(&self) -> &Queue {
@@ -251,6 +265,10 @@ impl Device {
 
     pub fn synchronization2_loader(&self) -> &ash::extensions::khr::Synchronization2 {
         &self.inner.synchronization2_loader
+    }
+
+    pub(crate) fn all_queue_family_indices(&self) -> &[u32] {
+        &self.inner.all_queue_family_indices
     }
 }
 
