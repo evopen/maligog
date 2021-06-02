@@ -186,7 +186,7 @@ impl Buffer {
         let data = data.as_ref();
         let mut guard = self.lock_memory().unwrap();
         let mapped = guard.mapped_slice_mut().unwrap();
-        mapped.copy_from_slice(data);
+        mapped[0..data.len()].copy_from_slice(data);
     }
 
     pub fn size(&self) -> usize {
