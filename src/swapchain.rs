@@ -23,6 +23,23 @@ pub struct Swapchain {
 impl Swapchain {
     pub fn new(device: &Device, surface: Surface, present_mode: vk::PresentModeKHR) -> Self {
         unsafe {
+            if !device
+                .inner
+                .pdevice
+                .instance
+                .inner
+                .surface_loader
+                .as_ref()
+                .unwrap()
+                .get_physical_device_surface_support(
+                    device.inner.pdevice.handle,
+                    device.graphics_queue_family_index(),
+                    surface.inner.handle,
+                )
+                .unwrap()
+            {
+                panic!("incompatible physical device and surface")
+            }
             let surface_loader = &device
                 .inner
                 .pdevice
@@ -146,6 +163,10 @@ impl Swapchain {
                 log::warn!("{:?}", e);
             }
         }
+    }
+
+    pub fn get_image(&self, index: u32) -> Image {
+        self.inner.images[index as usize].clone()
     }
 
     // pub fn renew(&self) {
