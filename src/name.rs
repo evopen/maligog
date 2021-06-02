@@ -43,6 +43,8 @@ pub mod device {
         KhrShaderNonSemanticInfo,
         #[strum(serialize = "VK_KHR_ray_query")]
         KhrRayQuery,
+        #[strum(serialize = "VK_KHR_synchronization2")]
+        KhrSynchronization2,
     }
 }
 

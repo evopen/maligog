@@ -71,6 +71,8 @@ impl Device {
                     .build(),
             );
 
+            let mut device_extensions = device_extensions.to_vec();
+            device_extensions.push(crate::name::device::Extension::KhrSynchronization2);
             let device_extension_names = device_extensions
                 .iter()
                 .map(|extension| CString::new(extension.as_ref()).unwrap())
