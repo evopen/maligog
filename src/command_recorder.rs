@@ -100,6 +100,7 @@ impl<'a> CommandRecorder<'a> {
                 pipeline.inner.handle,
             );
             self.bind_point = Some(vk::PipelineBindPoint::GRAPHICS);
+            self.pipeline_layout = Some(pipeline.inner.layout.clone());
             f(self);
         }
         // self.command_buffer.resources.push(pipeline);

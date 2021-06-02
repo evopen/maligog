@@ -11,7 +11,7 @@ use crate::ShaderStage;
 
 pub struct GraphicsPipelineRef {
     pub(crate) handle: vk::Pipeline,
-    layout: PipelineLayout,
+    pub(crate) layout: PipelineLayout,
     stages: Vec<ShaderStage>,
     render_pass: RenderPass,
     device: Device,
