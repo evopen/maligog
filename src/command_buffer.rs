@@ -10,7 +10,7 @@ pub struct CommandBuffer {
 }
 
 impl CommandBuffer {
-    pub(crate) fn new(device: &Device, command_pool: CommandPool) -> Self {
+    pub(crate) fn new(device: &Device, command_pool: &CommandPool) -> Self {
         unsafe {
             let handle = device
                 .inner
@@ -77,7 +77,7 @@ impl CommandBuffer {
 
 impl Device {
     pub fn create_command_buffer(&self, queue_family_index: u32) -> CommandBuffer {
-        CommandBuffer::new(self, self.command_pool(queue_family_index))
+        CommandBuffer::new(self, &self.command_pool(queue_family_index))
     }
 }
 

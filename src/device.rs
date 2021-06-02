@@ -183,8 +183,20 @@ impl Device {
                 });
 
             let graphics_queue = Queue::new(&handle, &graphics_queue_family_properties, 0);
+            log::debug!(
+                "graphics queue family index: {}",
+                graphics_queue_family_properties.index
+            );
             let compute_queue = Queue::new(&handle, &compute_queue_family_properties, 0);
+            log::debug!(
+                "compute queue family index: {}",
+                compute_queue_family_properties.index
+            );
             let transfer_queue = Queue::new(&handle, &transfer_queue_family_properties, 0);
+            log::debug!(
+                "transfer queue family index: {}",
+                transfer_queue_family_properties.index
+            );
             let all_queue_family_indices = std::collections::BTreeSet::from_iter([
                 graphics_queue_family_properties.index,
                 compute_queue_family_properties.index,
@@ -216,7 +228,7 @@ impl Device {
         let mut pools = self.inner.command_pool.get_or_default().borrow_mut();
         let pool = pools
             .entry(queue_family_index)
-            .or_insert(CommandPool::new(self.clone(), queue_family_index));
+            .or_insert_with(|| CommandPool::new(self.clone(), queue_family_index));
         pool.clone()
     }
 
