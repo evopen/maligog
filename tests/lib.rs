@@ -47,18 +47,18 @@ impl Engine {
         let buffer2 = device.create_buffer(
             Some("hello"),
             1,
-            maligog::BufferUsageFlags::TRANSFER_DST | maligog::BufferUsageFlags::UNIFORM_BUFFER,
+            maligog::BufferUsageFlags::TRANSFER_DST | maligog::BufferUsageFlags::STORAGE_BUFFER,
             maligog::MemoryLocation::GpuToCpu,
         );
         dbg!(&buffer2);
 
-        let _buffer3 = device.create_buffer_init(
+        let buffer3 = device.create_buffer_init(
             Some("hastalavista"),
             &[1, 2, 3, 1, 51, 56, 4, 23, 1, 3],
             maligog::BufferUsageFlags::STORAGE_BUFFER,
             maligog::MemoryLocation::CpuToGpu,
         );
-        dbg!(&_buffer3);
+        dbg!(&buffer3);
 
         let _buffer4 = device.create_buffer_init(
             Some("gpu only"),
@@ -127,7 +127,7 @@ impl Engine {
             &descriptor_pool,
             &descriptor_set_layout,
             btreemap! {
-                0 => maligog::DescriptorUpdate::Buffer(vec![BufferView{buffer: buffer1.clone(), offset: 0},
+                0 => maligog::DescriptorUpdate::Buffer(vec![BufferView{buffer: buffer3.clone(), offset: 0},
                                                             BufferView{buffer: buffer2.clone(), offset: 0}]),
             },
         );
@@ -167,6 +167,10 @@ fn test_general() {
         }
         frame_counter += 1;
         let index = engine.swapchain.acquire_next_image().unwrap();
+        engine.swapchain.get_image(index).set_layout(
+            maligog::ImageLayout::UNDEFINED,
+            maligog::ImageLayout::PRESENT_SRC_KHR,
+        );
         engine
             .swapchain
             .present(index, &[&engine.swapchain.image_available_semaphore()]);
