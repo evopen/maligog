@@ -160,6 +160,10 @@ impl Image {
             image_usage | vk::ImageUsageFlags::TRANSFER_DST,
             location,
         );
+        image.set_layout(
+            vk::ImageLayout::UNDEFINED,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+        );
         let mut guard = image.lock_memory().unwrap().unwrap();
         match guard.mapped_slice_mut() {
             Some(mapped) => {
@@ -440,7 +444,7 @@ impl Image {
         self.inner.handle
     }
 
-    pub fn set_layout(&self) {
+    pub fn set_layout(&self, old_layout: vk::ImageLayout, new_layout: vk::ImageLayout) {
         let mut cmd_buf = self
             .device()
             .create_command_buffer(self.device().find_transfer_queue_family_index());
@@ -449,6 +453,8 @@ impl Image {
             .src_access_mask(vk::AccessFlags2KHR::MEMORY_READ | vk::AccessFlags2KHR::MEMORY_WRITE)
             .dst_stage_mask(vk::PipelineStageFlags2KHR::ALL_COMMANDS)
             .dst_access_mask(vk::AccessFlags2KHR::MEMORY_READ | vk::AccessFlags2KHR::MEMORY_WRITE)
+            .old_layout(old_layout)
+            .new_layout(new_layout)
             .image(self.handle())
             .subresource_range(
                 vk::ImageSubresourceRange::builder()
