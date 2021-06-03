@@ -61,13 +61,10 @@ impl ImageView {
     }
 }
 
-impl Drop for ImageView {
+impl Drop for ImageViewRef {
     fn drop(&mut self) {
         unsafe {
-            self.inner
-                .device
-                .handle()
-                .destroy_image_view(self.inner.handle, None);
+            self.device.handle().destroy_image_view(self.handle, None);
         }
     }
 }
