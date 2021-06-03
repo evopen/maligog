@@ -1,3 +1,4 @@
+use crate::command_buffer::CommandBufferResource;
 use crate::{
     Buffer, CommandBuffer, DescriptorSet, Device, Framebuffer, GraphicsPipeline, Image,
     PipelineLayout, RenderPass,
@@ -5,7 +6,7 @@ use crate::{
 use ash::vk;
 
 pub struct CommandRecorder<'a> {
-    pub(crate) command_buffer: &'a CommandBuffer,
+    pub(crate) command_buffer: &'a mut CommandBuffer,
     pub(crate) bind_point: Option<vk::PipelineBindPoint>,
     pub(crate) pipeline_layout: Option<PipelineLayout>,
 }
@@ -60,6 +61,13 @@ impl<'a> CommandRecorder<'a> {
     ) where
         I: FnOnce(&mut CommandRecorder),
     {
+        self.command_buffer
+            .resources
+            .push(Box::new(render_pass.clone()));
+        self.command_buffer
+            .resources
+            .push(Box::new(framebuffer.clone()));
+
         unsafe {
             let info = vk::RenderPassBeginInfo::builder()
                 .render_pass(render_pass.inner.handle)
