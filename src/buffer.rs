@@ -152,8 +152,10 @@ impl Buffer {
                     vk::BufferUsageFlags::TRANSFER_SRC,
                     gpu_allocator::MemoryLocation::CpuToGpu,
                 );
-                let mut cmd_buf =
-                    device.create_command_buffer(device.transfer_queue_family_index());
+                let mut cmd_buf = device.create_command_buffer(
+                    Some("transfer staging"),
+                    device.transfer_queue_family_index(),
+                );
                 cmd_buf.encode(|recorder| {
                     unsafe {
                         recorder.copy_buffer_raw(

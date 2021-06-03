@@ -177,8 +177,10 @@ impl Image {
                     vk::BufferUsageFlags::TRANSFER_SRC,
                     gpu_allocator::MemoryLocation::CpuToGpu,
                 );
-                let mut cmd_buf =
-                    device.create_command_buffer(device.transfer_queue_family_index());
+                let mut cmd_buf = device.create_command_buffer(
+                    Some("transfer staging"),
+                    device.transfer_queue_family_index(),
+                );
                 cmd_buf.encode(|recorder| {
                     unsafe {
                         recorder.copy_buffer_to_image_raw(
@@ -446,9 +448,10 @@ impl Image {
     }
 
     pub fn set_layout(&self, old_layout: vk::ImageLayout, new_layout: vk::ImageLayout) {
-        let mut cmd_buf = self
-            .device()
-            .create_command_buffer(self.device().transfer_queue_family_index());
+        let mut cmd_buf = self.device().create_command_buffer(
+            Some("set layout barrier"),
+            self.device().transfer_queue_family_index(),
+        );
         let image_memory_barrier = vk::ImageMemoryBarrier2KHR::builder()
             .src_stage_mask(vk::PipelineStageFlags2KHR::ALL_COMMANDS)
             .src_access_mask(vk::AccessFlags2KHR::MEMORY_READ | vk::AccessFlags2KHR::MEMORY_WRITE)

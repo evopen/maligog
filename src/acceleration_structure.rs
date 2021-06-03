@@ -138,8 +138,10 @@ impl AccelerationStructure {
                 }),
             };
 
-            let mut command_buffer =
-                device.create_command_buffer(device.graphics_queue_family_index());
+            let mut command_buffer = device.create_command_buffer(
+                Some("build acc structure"),
+                device.graphics_queue_family_index(),
+            );
             command_buffer.encode(|recorder| {
                 recorder.build_acceleration_structure_raw(
                     build_geometry_info,
