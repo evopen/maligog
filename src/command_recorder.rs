@@ -206,6 +206,20 @@ impl<'a> CommandRecorder<'a> {
         }
     }
 
+    pub fn clear_attachments(
+        &mut self,
+        attachments: &[vk::ClearAttachment],
+        rects: &[vk::ClearRect],
+    ) {
+        unsafe {
+            self.device().handle().cmd_clear_attachments(
+                self.command_buffer.handle,
+                attachments,
+                rects,
+            );
+        }
+    }
+
     fn device_handle(&self) -> &ash::Device {
         &self.command_buffer.device.inner.handle
     }
