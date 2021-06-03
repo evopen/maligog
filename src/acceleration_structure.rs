@@ -14,6 +14,7 @@ pub(crate) struct AccelerationStructureRef {
     device: Device,
 }
 
+#[derive(Clone)]
 pub struct AccelerationStructure {
     pub(crate) inner: Arc<AccelerationStructureRef>,
 }

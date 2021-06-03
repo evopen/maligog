@@ -24,7 +24,7 @@ pub struct DescriptorSetRef {
     device: Device,
     descriptor_pool: DescriptorPool,
     descriptor_set_layout: DescriptorSetLayout,
-    resources: BTreeMap<u32, Vec<Arc<dyn Descriptor>>>,
+    resources: BTreeMap<u32, Vec<Box<dyn Descriptor>>>,
 }
 
 impl DescriptorSetRef {
@@ -107,6 +107,13 @@ impl DescriptorSetRef {
 
             let write = match info {
                 DescriptorUpdate::Buffer(buffer_views) => {
+                    self.resources.insert(
+                        *binding,
+                        buffer_views
+                            .iter()
+                            .map(|v| Box::new(v.clone()) as Box<dyn Descriptor>)
+                            .collect(),
+                    );
                     for buffer_view in buffer_views {
                         buffer_infos.push(
                             vk::DescriptorBufferInfo::builder()
@@ -119,6 +126,13 @@ impl DescriptorSetRef {
                     write_builder.buffer_info(&buffer_infos).build()
                 }
                 DescriptorUpdate::Image(image_views) => {
+                    self.resources.insert(
+                        *binding,
+                        image_views
+                            .iter()
+                            .map(|v| Box::new(v.clone()) as Box<dyn Descriptor>)
+                            .collect(),
+                    );
                     for image_view in image_views {
                         image_infos.push(
                             vk::DescriptorImageInfo::builder()
@@ -130,6 +144,8 @@ impl DescriptorSetRef {
                     write_builder.image_info(&image_infos).build()
                 }
                 DescriptorUpdate::Sampler(sampler) => {
+                    self.resources
+                        .insert(*binding, vec![Box::new(sampler.clone())]);
                     image_infos.push(
                         vk::DescriptorImageInfo::builder()
                             .sampler(sampler.inner.handle)
@@ -138,6 +154,13 @@ impl DescriptorSetRef {
                     write_builder.image_info(&image_infos).build()
                 }
                 DescriptorUpdate::AccelerationStructure(acceleration_structures) => {
+                    self.resources.insert(
+                        *binding,
+                        acceleration_structures
+                            .iter()
+                            .map(|v| Box::new(v.clone()) as Box<dyn Descriptor>)
+                            .collect(),
+                    );
                     for acc_struct in acceleration_structures {
                         tlas_handles.push(acc_struct.inner.handle);
                     }

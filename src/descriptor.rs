@@ -15,3 +15,8 @@ pub enum DescriptorType {
     AccelerationStructure,
     StorageImage,
 }
+
+impl Descriptor for crate::Sampler {}
+impl Descriptor for crate::ImageView {}
+impl Descriptor for crate::BufferView {}
+impl Descriptor for crate::AccelerationStructure {}
