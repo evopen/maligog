@@ -13,6 +13,7 @@ pub(crate) struct FramebufferRef {
     height: u32,
 }
 
+#[derive(Clone)]
 pub struct Framebuffer {
     pub(crate) inner: Arc<FramebufferRef>,
 }

@@ -30,10 +30,10 @@ pub(crate) struct DeviceRef {
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
     synchronization2_loader: ash::extensions::khr::Synchronization2,
     pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
-    graphics_queue: Queue,
-    transfer_queue: Queue,
-    compute_queue: Queue,
-    command_pool: ThreadLocal<RefCell<BTreeMap<u32, CommandPool>>>,
+    graphics_queue: ManuallyDrop<Queue>,
+    transfer_queue: ManuallyDrop<Queue>,
+    compute_queue: ManuallyDrop<Queue>,
+    command_pool: ManuallyDrop<ThreadLocal<RefCell<BTreeMap<u32, CommandPool>>>>,
     all_queue_family_indices: Vec<u32>,
 }
 
@@ -209,15 +209,15 @@ impl Device {
                 inner: Arc::new(DeviceRef {
                     handle,
                     pdevice,
-                    graphics_queue,
-                    compute_queue,
-                    transfer_queue,
+                    graphics_queue: ManuallyDrop::new(graphics_queue),
+                    compute_queue: ManuallyDrop::new(compute_queue),
+                    transfer_queue: ManuallyDrop::new(transfer_queue),
                     acceleration_structure_loader,
                     synchronization2_loader,
                     swapchain_loader,
                     ray_tracing_pipeline_loader,
                     allocator: Mutex::new(ManuallyDrop::new(allocator)),
-                    command_pool: ThreadLocal::new(),
+                    command_pool: ManuallyDrop::new(ThreadLocal::new()),
                     all_queue_family_indices,
                 }),
             }
@@ -286,7 +286,15 @@ impl Device {
 
 impl Drop for DeviceRef {
     fn drop(&mut self) {
+        log::debug!("dropping device");
+
         unsafe {
+            self.handle.device_wait_idle();
+            ManuallyDrop::drop(&mut self.graphics_queue);
+            ManuallyDrop::drop(&mut self.compute_queue);
+            ManuallyDrop::drop(&mut self.transfer_queue);
+            ManuallyDrop::drop(&mut self.command_pool);
+
             ManuallyDrop::drop(&mut self.allocator.lock().unwrap());
             self.handle.destroy_device(None);
         }
