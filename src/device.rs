@@ -182,17 +182,32 @@ impl Device {
                     },
                 });
 
-            let graphics_queue = Queue::new(&handle, &graphics_queue_family_properties, 0);
+            let graphics_queue = Queue::new(
+                &handle,
+                synchronization2_loader.clone(),
+                &graphics_queue_family_properties,
+                0,
+            );
             log::debug!(
                 "graphics queue family index: {}",
                 graphics_queue_family_properties.index
             );
-            let compute_queue = Queue::new(&handle, &compute_queue_family_properties, 0);
+            let compute_queue = Queue::new(
+                &handle,
+                synchronization2_loader.clone(),
+                &compute_queue_family_properties,
+                0,
+            );
             log::debug!(
                 "compute queue family index: {}",
                 compute_queue_family_properties.index
             );
-            let transfer_queue = Queue::new(&handle, &transfer_queue_family_properties, 0);
+            let transfer_queue = Queue::new(
+                &handle,
+                synchronization2_loader.clone(),
+                &transfer_queue_family_properties,
+                0,
+            );
             log::debug!(
                 "transfer queue family index: {}",
                 transfer_queue_family_properties.index

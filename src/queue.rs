@@ -11,6 +11,7 @@ pub(crate) struct QueueRef {
     pub(crate) queue_family_properties: QueueFamilyProperties,
     device: ash::Device,
     command_buffers: Vec<CommandBuffer>,
+    synchronization2_loader: ash::extensions::khr::Synchronization2,
 }
 
 pub struct Queue {
@@ -20,6 +21,7 @@ pub struct Queue {
 impl Queue {
     pub(crate) fn new(
         device: &ash::Device,
+        synchronization2_loader: ash::extensions::khr::Synchronization2,
         queue_family_properties: &QueueFamilyProperties,
         queue_index: u32,
     ) -> Self {
@@ -28,6 +30,7 @@ impl Queue {
             Self {
                 inner: Arc::new(QueueRef {
                     handle,
+                    synchronization2_loader,
                     queue_family_properties: queue_family_properties.clone(),
                     device: device.clone(),
                     command_buffers: vec![],
@@ -38,9 +41,13 @@ impl Queue {
 
     pub fn submit_blocking(&self, command_buffers: &[CommandBuffer]) {
         unsafe {
-            let command_buffer_handles = command_buffers
+            let command_buffer_submit_infos = command_buffers
                 .iter()
-                .map(|cmd_buf| cmd_buf.handle)
+                .map(|cmd_buf| {
+                    vk::CommandBufferSubmitInfoKHR::builder()
+                        .command_buffer(cmd_buf.handle)
+                        .build()
+                })
                 .collect::<Vec<_>>();
 
             let fence_handle = self
@@ -49,15 +56,16 @@ impl Queue {
                 .create_fence(&vk::FenceCreateInfo::builder().build(), None)
                 .unwrap();
             self.inner
-                .device
-                .queue_submit(
+                .synchronization2_loader
+                .queue_submit2(
                     self.inner.handle,
-                    &[vk::SubmitInfo::builder()
-                        .command_buffers(&command_buffer_handles)
+                    &[vk::SubmitInfo2KHR::builder()
+                        .command_buffer_infos(&command_buffer_submit_infos)
                         .build()],
                     fence_handle,
                 )
                 .unwrap();
+
             self.inner
                 .device
                 .wait_for_fences(&[fence_handle], true, std::u64::MAX);
