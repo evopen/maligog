@@ -68,6 +68,6 @@ impl Queue {
 
 impl Drop for QueueRef {
     fn drop(&mut self) {
-        log::debug!("dropping queue");
+        log::debug!("dropping queue and its command buffers");
     }
 }
