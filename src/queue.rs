@@ -61,6 +61,13 @@ impl Queue {
             self.inner
                 .device
                 .wait_for_fences(&[fence_handle], true, std::u64::MAX);
+            self.inner.device.destroy_fence(fence_handle, None);
         }
+    }
+}
+
+impl Drop for QueueRef {
+    fn drop(&mut self) {
+        log::debug!("dropping queue");
     }
 }
