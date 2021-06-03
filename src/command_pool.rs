@@ -4,16 +4,20 @@ use ash::vk;
 
 use crate::device::Device;
 
+pub(crate) struct CommandPoolRef {
+    pub(crate) handle: vk::CommandPool,
+    device_handle: ash::Device,
+}
+
 #[derive(Clone)]
 pub(crate) struct CommandPool {
-    pub(crate) handle: vk::CommandPool,
-    device: Device,
+    pub(crate) inner: Arc<CommandPoolRef>,
 }
 
 impl std::fmt::Debug for CommandPool {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CommandPool")
-            .field("handle", &self.handle)
+            .field("handle", &self.inner.handle)
             .finish()
     }
 }
@@ -32,7 +36,12 @@ impl CommandPool {
                     None,
                 )
                 .unwrap();
-            Self { handle, device }
+            Self {
+                inner: Arc::new(CommandPoolRef {
+                    handle,
+                    device_handle: device.handle().clone(),
+                }),
+            }
         }
     }
 
@@ -48,11 +57,11 @@ impl CommandPool {
     // }
 }
 
-// impl Drop for CommandPool {
-//     fn drop(&mut self) {
-//         unsafe {
-//             log::debug!("destroying command pool");
-//             self.device.handle().destroy_command_pool(self.handle, None);
-//         }
-//     }
-// }
+impl Drop for CommandPoolRef {
+    fn drop(&mut self) {
+        unsafe {
+            log::debug!("destroying command pool");
+            self.device_handle.destroy_command_pool(self.handle, None);
+        }
+    }
+}
