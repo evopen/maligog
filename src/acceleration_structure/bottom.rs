@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::ffi::CString;
 use std::sync::Arc;
 
@@ -18,18 +19,17 @@ pub struct BottomAccelerationStructure {
 }
 
 impl BottomAccelerationStructure {
-    pub(crate) fn new(
-        name: Option<&str>,
-        device: &Device,
-        geometries: &[&super::TriangleGeometry],
-    ) {
+    pub(crate) fn new<I>(name: Option<&str>, device: &Device, geometries: &[I]) -> Self
+    where
+        I: Borrow<super::TriangleGeometry>,
+    {
         let vk_geometries = geometries
             .iter()
-            .map(|t| t.acceleration_structure_geometry)
+            .map(|t| t.borrow().acceleration_structure_geometry)
             .collect::<Vec<_>>();
         let triangle_counts = geometries
             .iter()
-            .map(|t| t.triangle_count)
+            .map(|t| t.borrow().triangle_count)
             .collect::<Vec<_>>();
         unsafe {
             let size_info = device
@@ -98,7 +98,7 @@ impl BottomAccelerationStructure {
 
             let build_range_infos = geometries
                 .iter()
-                .map(|t| t.build_range_info)
+                .map(|t| t.borrow().build_range_info)
                 .collect::<Vec<_>>();
 
             let mut cmd_buf = device.create_command_buffer(
@@ -109,6 +109,45 @@ impl BottomAccelerationStructure {
                 recorder.build_acceleration_structure_raw(build_geometry_info, &build_range_infos);
             });
             device.compute_queue().submit_blocking(&[cmd_buf]);
+            let device_address = device
+                .inner
+                .acceleration_structure_loader
+                .get_acceleration_structure_device_address(
+                    &vk::AccelerationStructureDeviceAddressInfoKHR::builder()
+                        .acceleration_structure(handle)
+                        .build(),
+                );
+            Self {
+                inner: Arc::new(BottomAceelerationStructureRef {
+                    handle,
+                    device_address,
+                    device: device.clone(),
+                }),
+            }
+        }
+    }
+}
+
+impl Device {
+    pub fn create_bottom_level_acceleration_structure<I>(
+        &self,
+        name: Option<&str>,
+        geometries: &[I],
+    ) -> BottomAccelerationStructure
+    where
+        I: Borrow<super::TriangleGeometry>,
+    {
+        BottomAccelerationStructure::new(name, &self, geometries)
+    }
+}
+
+impl Drop for BottomAceelerationStructureRef {
+    fn drop(&mut self) {
+        unsafe {
+            self.device
+                .inner
+                .acceleration_structure_loader
+                .destroy_acceleration_structure(self.handle, None);
         }
     }
 }

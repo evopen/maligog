@@ -32,7 +32,9 @@ mod swapchain;
 
 mod shader_module;
 
-pub use acceleration_structure::{BottomAccelerationStructure, TopAccelerationStructure};
+pub use acceleration_structure::{
+    BottomAccelerationStructure, InstanceGeometry, TopAccelerationStructure, TriangleGeometry,
+};
 pub use buffer::Buffer;
 pub use buffer_view::{BufferView, IndexBufferView, VertexBufferView};
 pub use command_buffer::CommandBuffer;

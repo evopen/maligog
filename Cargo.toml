@@ -28,5 +28,6 @@ anyhow = "1.0"
 env_logger = "0.8.3"
 winit = "0.25"
 maplit = "1.0"
-
+dotenv = "0.15"
+gltf = "0.16"
 

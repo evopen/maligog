@@ -131,6 +131,85 @@ impl Engine {
                                                             BufferView{buffer: buffer2.clone(), offset: 0}]),
             },
         );
+
+        if let Ok(p) = std::env::var("GLTF_TEST_FILE") {
+            let (doc, gltf_buffers, _) = gltf::import(&p).unwrap();
+            let buffers = gltf_buffers
+                .iter()
+                .map(|data| {
+                    device.create_buffer_init(
+                        Some("gltf buffer"),
+                        data.as_ref(),
+                        maligog::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                            | maligog::BufferUsageFlags::STORAGE_BUFFER,
+                        maligog::MemoryLocation::GpuOnly,
+                    )
+                })
+                .collect::<Vec<_>>();
+            for mesh in doc.meshes() {
+                let geometries: Vec<maligog::TriangleGeometry> = mesh
+                    .primitives()
+                    .map(|p| {
+                        let index_accessor = p.indices().unwrap();
+                        let (_, vertex_accessor) = p
+                            .attributes()
+                            .find(|(semantic, _)| semantic.eq(&gltf::Semantic::Positions))
+                            .unwrap();
+                        let index_buffer_view = maligog::IndexBufferView {
+                            buffer_view: maligog::BufferView {
+                                buffer: buffers[index_accessor.view().unwrap().buffer().index()]
+                                    .clone(),
+                                offset: (index_accessor.offset()
+                                    + index_accessor.view().unwrap().offset())
+                                    as u64,
+                            },
+                            index_type: match index_accessor.data_type() {
+                                gltf::accessor::DataType::U16 => vk::IndexType::UINT16,
+                                gltf::accessor::DataType::U32 => vk::IndexType::UINT32,
+                                _ => {
+                                    unimplemented!()
+                                }
+                            },
+                            count: index_accessor.count() as u32,
+                        };
+                        let vertex_buffer_view = maligog::VertexBufferView {
+                            buffer_view: maligog::BufferView {
+                                buffer: buffers[vertex_accessor.view().unwrap().buffer().index()]
+                                    .clone(),
+                                offset: (vertex_accessor.offset()
+                                    + vertex_accessor.view().unwrap().offset())
+                                    as u64,
+                            },
+                            format: match vertex_accessor.data_type() {
+                                gltf::accessor::DataType::U32 => maligog::Format::R32G32B32_UINT,
+                                gltf::accessor::DataType::F32 => maligog::Format::R32G32B32_SFLOAT,
+                                _ => {
+                                    unimplemented!()
+                                }
+                            },
+                            stride: match vertex_accessor.dimensions() {
+                                gltf::accessor::Dimensions::Vec3 => {
+                                    std::mem::size_of::<f32>() as u64 * 3
+                                }
+                                _ => {
+                                    unimplemented!()
+                                }
+                            },
+                            count: vertex_accessor.count() as u32,
+                        };
+                        maligog::TriangleGeometry::new(
+                            &&index_buffer_view,
+                            &&vertex_buffer_view,
+                            None,
+                        )
+                    })
+                    .collect();
+
+                let blas =
+                    device.create_bottom_level_acceleration_structure(mesh.name(), &geometries);
+            }
+        }
+
         Self {
             instance,
             device,
@@ -151,6 +230,7 @@ fn test_general() {
         .filter_level(log::LevelFilter::Trace)
         .try_init()
         .ok();
+    dotenv::dotenv().ok();
 
     let mut event_loop = winit::event_loop::EventLoop::<()>::new_any_thread();
     let win = winit::window::WindowBuilder::new()
