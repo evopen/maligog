@@ -8,9 +8,11 @@ use ash::vk::Handle;
 use crate::Device;
 
 pub struct BottomAceelerationStructureRef {
+    pub(crate) name: Option<String>,
     pub(crate) handle: vk::AccelerationStructureKHR,
     pub(crate) device_address: u64,
     device: Device,
+    geometries: Vec<super::TriangleGeometry>,
 }
 
 #[derive(Clone)]
@@ -119,12 +121,18 @@ impl BottomAccelerationStructure {
                 );
             Self {
                 inner: Arc::new(BottomAceelerationStructureRef {
+                    name: name.map(|s| s.to_owned()),
                     handle,
                     device_address,
                     device: device.clone(),
+                    geometries: geometries.into_iter().map(|a| a.borrow().clone()).collect(),
                 }),
             }
         }
+    }
+
+    pub fn name(&self) -> &Option<String> {
+        &self.inner.name
     }
 }
 

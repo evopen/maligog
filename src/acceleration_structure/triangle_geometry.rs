@@ -2,6 +2,7 @@ use std::ffi::c_void;
 
 use ash::vk;
 
+#[derive(Clone)]
 pub struct TriangleGeometry {
     pub(crate) acceleration_structure_geometry: vk::AccelerationStructureGeometryKHR,
     index_buffer_view: crate::IndexBufferView,

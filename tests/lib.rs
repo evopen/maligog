@@ -23,6 +23,7 @@ struct Engine {
     swapchain: maligog::Swapchain,
     image_view: maligog::ImageView,
     descriptor_set: maligog::DescriptorSet,
+    blases: Vec<maligog::BottomAccelerationStructure>,
 }
 
 impl Engine {
@@ -132,20 +133,22 @@ impl Engine {
             },
         );
 
-        if let Ok(p) = std::env::var("GLTF_TEST_FILE") {
-            let (doc, gltf_buffers, _) = gltf::import(&p).unwrap();
-            let buffers = gltf_buffers
-                .iter()
-                .map(|data| {
-                    device.create_buffer_init(
-                        Some("gltf buffer"),
-                        data.as_ref(),
-                        maligog::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
-                            | maligog::BufferUsageFlags::STORAGE_BUFFER,
-                        maligog::MemoryLocation::GpuOnly,
-                    )
-                })
-                .collect::<Vec<_>>();
+        let mut blases = Vec::new();
+        let mut buffers = Vec::new();
+
+        if let Ok(p) = std::env::var("GLTF_SAMPLE_PATH") {
+            log::info!("testing acceleration structure");
+            let (doc, gltf_buffers, _) =
+                gltf::import(std::path::PathBuf::from(p).join("2.0/Box/glTF/Box.gltf")).unwrap();
+            gltf_buffers.iter().for_each(|data| {
+                buffers.push(device.create_buffer_init(
+                    Some("gltf buffer"),
+                    data.as_ref(),
+                    maligog::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
+                        | maligog::BufferUsageFlags::STORAGE_BUFFER,
+                    maligog::MemoryLocation::GpuOnly,
+                ))
+            });
             for mesh in doc.meshes() {
                 let geometries: Vec<maligog::TriangleGeometry> = mesh
                     .primitives()
@@ -205,8 +208,13 @@ impl Engine {
                     })
                     .collect();
 
-                let blas =
-                    device.create_bottom_level_acceleration_structure(mesh.name(), &geometries);
+                blases.push(
+                    device.create_bottom_level_acceleration_structure(mesh.name(), &geometries),
+                );
+                log::warn!("here");
+            }
+            for blas in &blases {
+                dbg!(&blas.name());
             }
         }
 
@@ -220,6 +228,7 @@ impl Engine {
             swapchain,
             image_view,
             descriptor_set,
+            blases,
         }
     }
 }
@@ -238,7 +247,7 @@ fn test_general() {
         .unwrap();
     let mut engine = Engine::new(&win);
 
-    let mut frame_counter = 0;
+    let mut frame_counter: u64 = 0;
     event_loop.run_return(|event, _, control_flow| {
         if frame_counter > 5 {
             *control_flow = winit::event_loop::ControlFlow::Exit;
