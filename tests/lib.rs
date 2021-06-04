@@ -36,7 +36,7 @@ impl Engine {
             .first()
             .unwrap()
             .to_owned();
-        let device = pdevice.create_device(&[(pdevice.queue_families().first().unwrap(), &[1.0])]);
+        let device = pdevice.create_device();
         let buffer1 = device.create_buffer(
             None,
             123,
