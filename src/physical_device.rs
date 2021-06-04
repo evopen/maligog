@@ -65,7 +65,7 @@ impl PhysicalDevice {
             .collect::<Vec<_>>()
     }
 
-    pub fn create_device(&self, queues: &[(&QueueFamilyProperties, &[f32])]) -> Device {
+    pub fn create_device(&self) -> Device {
         let device = Device::new(
             self.instance.clone(),
             self.clone(),
