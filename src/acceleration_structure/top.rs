@@ -6,28 +6,28 @@ use ash::vk::Handle;
 
 use crate::Device;
 
-pub struct BottomAceelerationStructureRef {
-    pub(crate) handle: vk::AccelerationStructureKHR,
-    pub(crate) device_address: u64,
+pub struct TopAccelerationStructureRef {
+    handle: vk::AccelerationStructureKHR,
+    device_address: u64,
     device: Device,
 }
 
 #[derive(Clone)]
-pub struct BottomAccelerationStructure {
-    pub(crate) inner: Arc<BottomAceelerationStructureRef>,
+pub struct TopAccelerationStructure {
+    pub(crate) inner: Arc<TopAccelerationStructure>,
 }
 
-impl BottomAccelerationStructure {
+impl TopAccelerationStructure {
     pub(crate) fn new(
         name: Option<&str>,
         device: &Device,
-        geometries: &[&super::TriangleGeometry],
+        geometries: &[&super::InstanceGeometry],
     ) {
         let vk_geometries = geometries
             .iter()
             .map(|t| t.acceleration_structure_geometry)
             .collect::<Vec<_>>();
-        let triangle_counts = geometries
+        let instance_counts = geometries
             .iter()
             .map(|t| t.triangle_count)
             .collect::<Vec<_>>();
@@ -39,10 +39,10 @@ impl BottomAccelerationStructure {
                     vk::AccelerationStructureBuildTypeKHR::DEVICE,
                     &vk::AccelerationStructureBuildGeometryInfoKHR::builder()
                         .flags(vk::BuildAccelerationStructureFlagsKHR::PREFER_FAST_TRACE)
-                        .ty(vk::AccelerationStructureTypeKHR::BOTTOM_LEVEL)
+                        .ty(vk::AccelerationStructureTypeKHR::TOP_LEVEL)
                         .geometries(&vk_geometries)
                         .build(),
-                    &triangle_counts,
+                    &instance_counts,
                 );
             let as_buffer = device.create_buffer(
                 Some(&format!(
@@ -59,7 +59,7 @@ impl BottomAccelerationStructure {
                 .acceleration_structure_loader
                 .create_acceleration_structure(
                     &vk::AccelerationStructureCreateInfoKHR::builder()
-                        .ty(vk::AccelerationStructureTypeKHR::BOTTOM_LEVEL)
+                        .ty(vk::AccelerationStructureTypeKHR::TOP_LEVEL)
                         .buffer(as_buffer.inner.handle)
                         .size(size_info.acceleration_structure_size)
                         .build(),
@@ -99,7 +99,7 @@ impl BottomAccelerationStructure {
 
             let build_geometry_info = vk::AccelerationStructureBuildGeometryInfoKHR::builder()
                 .flags(vk::BuildAccelerationStructureFlagsKHR::PREFER_FAST_TRACE)
-                .ty(vk::AccelerationStructureTypeKHR::BOTTOM_LEVEL)
+                .ty(vk::AccelerationStructureTypeKHR::TOP_LEVEL)
                 .geometries(&vk_geometries)
                 .dst_acceleration_structure(handle)
                 .mode(vk::BuildAccelerationStructureModeKHR::BUILD)
