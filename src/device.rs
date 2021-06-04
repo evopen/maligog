@@ -301,6 +301,28 @@ impl Device {
     pub(crate) fn all_queue_family_indices(&self) -> &[u32] {
         &self.inner.all_queue_family_indices
     }
+
+    pub(crate) fn debug_set_object_name(
+        &self,
+        name: &str,
+        object_handle: u64,
+        object_type: vk::ObjectType,
+    ) {
+        if let Some(debug_loader) = self.inner.pdevice.instance.inner.debug_utils_loader {
+            unsafe {
+                debug_loader
+                    .debug_utils_set_object_name(
+                        self.handle().handle(),
+                        &vk::DebugUtilsObjectNameInfoEXT::builder()
+                            .object_handle(object_handle)
+                            .object_type(object_type)
+                            .object_name(CString::new(name).unwrap().as_ref())
+                            .build(),
+                    )
+                    .unwrap();
+            }
+        }
+    }
 }
 
 impl Drop for DeviceRef {

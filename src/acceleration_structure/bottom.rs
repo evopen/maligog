@@ -68,23 +68,11 @@ impl BottomAccelerationStructure {
                 .unwrap();
 
             if let Some(name) = name {
-                device
-                    .inner
-                    .pdevice
-                    .instance
-                    .inner
-                    .debug_utils_loader
-                    .as_ref()
-                    .unwrap()
-                    .debug_utils_set_object_name(
-                        device.handle().handle(),
-                        &vk::DebugUtilsObjectNameInfoEXT::builder()
-                            .object_handle(handle.as_raw())
-                            .object_type(vk::ObjectType::ACCELERATION_STRUCTURE_KHR)
-                            .object_name(CString::new(name).unwrap().as_ref())
-                            .build(),
-                    )
-                    .unwrap();
+                device.debug_set_object_name(
+                    name,
+                    handle.as_raw(),
+                    vk::ObjectType::ACCELERATION_STRUCTURE_KHR,
+                );
             }
             let scratch_buffer = device.create_buffer(
                 Some(&format!(
