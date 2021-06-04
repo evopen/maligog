@@ -34,7 +34,7 @@ mod shader_module;
 
 pub use acceleration_structure::AccelerationStructure;
 pub use buffer::Buffer;
-pub use buffer_view::BufferView;
+pub use buffer_view::{BufferView, IndexBufferView, VertexBufferView};
 pub use command_buffer::CommandBuffer;
 pub use command_recorder::CommandRecorder;
 pub use descriptor::Descriptor;
@@ -63,7 +63,7 @@ pub use swapchain::Swapchain;
 
 pub use ash::vk;
 pub use ash::vk::{
-    BufferUsageFlags, DescriptorPoolSize, ImageLayout, ImageUsageFlags, PresentModeKHR,
+    BufferUsageFlags, DescriptorPoolSize, Format, ImageLayout, ImageUsageFlags, PresentModeKHR,
     ShaderStageFlags,
 };
 pub use gpu_allocator::MemoryLocation;
