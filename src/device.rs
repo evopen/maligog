@@ -284,6 +284,10 @@ impl Device {
         &self.inner.graphics_queue
     }
 
+    pub fn compute_queue(&self) -> &Queue {
+        &self.inner.compute_queue
+    }
+
     pub fn wait_idle(&self) {
         unsafe {
             self.handle().device_wait_idle();
