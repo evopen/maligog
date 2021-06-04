@@ -19,4 +19,4 @@ pub enum DescriptorType {
 impl Descriptor for crate::Sampler {}
 impl Descriptor for crate::ImageView {}
 impl Descriptor for crate::BufferView {}
-impl Descriptor for crate::AccelerationStructure {}
+impl Descriptor for crate::TopAccelerationStructure {}

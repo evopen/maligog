@@ -149,5 +149,5 @@ fn test_create_device() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let _device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let _device = pdevice.create_device();
 }

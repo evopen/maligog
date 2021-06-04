@@ -308,7 +308,14 @@ impl Device {
         object_handle: u64,
         object_type: vk::ObjectType,
     ) {
-        if let Some(debug_loader) = self.inner.pdevice.instance.inner.debug_utils_loader {
+        if let Some(debug_loader) = self
+            .inner
+            .pdevice
+            .instance
+            .inner
+            .debug_utils_loader
+            .as_ref()
+        {
             unsafe {
                 debug_loader
                     .debug_utils_set_object_name(
@@ -370,6 +377,6 @@ fn test_create_command_buffer() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let device = pdevice.create_device();
     // device.allocate_command_buffer();
 }

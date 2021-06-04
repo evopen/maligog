@@ -144,6 +144,6 @@ fn test_command_buffer() {
         .iter()
         .find(|f| f.support_graphics() && f.support_compute())
         .unwrap();
-    let device = pdevice.create_device(&[(&queue_family, &[1.0])]);
+    let device = pdevice.create_device();
     // device.allocate_command_buffer();
 }

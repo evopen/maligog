@@ -12,12 +12,12 @@ use anyhow::Context;
 use crate::buffer::Buffer;
 use crate::descriptor_pool::DescriptorPool;
 use crate::sampler::Sampler;
-use crate::AccelerationStructure;
 use crate::BufferView;
 use crate::Descriptor;
 use crate::DescriptorSetLayout;
 use crate::Device;
 use crate::ImageView;
+use crate::TopAccelerationStructure;
 
 pub struct DescriptorSetRef {
     pub(crate) handle: vk::DescriptorSet,
@@ -220,7 +220,7 @@ pub enum DescriptorUpdate {
     Buffer(Vec<BufferView>), // buffer and offset
     Image(Vec<ImageView>),
     Sampler(Sampler),
-    AccelerationStructure(Vec<AccelerationStructure>),
+    AccelerationStructure(Vec<TopAccelerationStructure>),
 }
 
 impl Drop for DescriptorSetRef {

@@ -5,7 +5,7 @@ use ash::vk;
 pub struct InstanceGeometry {
     pub(crate) acceleration_structure_geometry: vk::AccelerationStructureGeometryKHR,
     pub(crate) build_range_info: vk::AccelerationStructureBuildRangeInfoKHR,
-    instance_count: u32,
+    pub(crate) instance_count: u32,
 }
 
 impl InstanceGeometry {

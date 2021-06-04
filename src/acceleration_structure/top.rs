@@ -6,15 +6,15 @@ use ash::vk::Handle;
 
 use crate::Device;
 
-pub struct TopAccelerationStructureRef {
-    handle: vk::AccelerationStructureKHR,
+pub(crate) struct TopAccelerationStructureRef {
+    pub(crate) handle: vk::AccelerationStructureKHR,
     device_address: u64,
     device: Device,
 }
 
 #[derive(Clone)]
 pub struct TopAccelerationStructure {
-    pub(crate) inner: Arc<TopAccelerationStructure>,
+    pub(crate) inner: Arc<TopAccelerationStructureRef>,
 }
 
 impl TopAccelerationStructure {
@@ -29,7 +29,7 @@ impl TopAccelerationStructure {
             .collect::<Vec<_>>();
         let instance_counts = geometries
             .iter()
-            .map(|t| t.triangle_count)
+            .map(|t| t.instance_count)
             .collect::<Vec<_>>();
         unsafe {
             let size_info = device
