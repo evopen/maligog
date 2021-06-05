@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use ash::vk;
 
@@ -12,6 +13,7 @@ pub(crate) struct QueueRef {
     device: ash::Device,
     command_buffers: Vec<CommandBuffer>,
     synchronization2_loader: ash::extensions::khr::Synchronization2,
+    lock: Mutex<()>,
 }
 
 pub struct Queue {
@@ -34,6 +36,7 @@ impl Queue {
                     queue_family_properties: queue_family_properties.clone(),
                     device: device.clone(),
                     command_buffers: vec![],
+                    lock: Mutex::new(()),
                 }),
             }
         }
@@ -55,6 +58,8 @@ impl Queue {
                 .device
                 .create_fence(&vk::FenceCreateInfo::builder().build(), None)
                 .unwrap();
+
+            let lock = self.inner.lock.lock().unwrap();
             self.inner
                 .synchronization2_loader
                 .queue_submit2(
@@ -65,6 +70,7 @@ impl Queue {
                     fence_handle,
                 )
                 .unwrap();
+            drop(lock);
 
             self.inner
                 .device
