@@ -330,6 +330,10 @@ impl Device {
             }
         }
     }
+
+    pub(crate) fn ray_tracing_pipeline_loader(&self) -> &ash::extensions::khr::RayTracingPipeline {
+        &self.inner.ray_tracing_pipeline_loader
+    }
 }
 
 impl Drop for DeviceRef {

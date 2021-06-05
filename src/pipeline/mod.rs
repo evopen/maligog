@@ -1,8 +1,10 @@
 mod graphics_pipeline;
 mod pipeline_layout;
+mod ray_tracing_pipeline;
 
 pub use graphics_pipeline::GraphicsPipeline;
 pub use pipeline_layout::PipelineLayout;
+pub use ray_tracing_pipeline::RayTracingPipeline;
 
 use std::ffi::CString;
 use std::sync::Arc;
