@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::ffi::c_void;
 
 use ash::vk;
@@ -10,7 +11,7 @@ pub struct TriangleGeometry {
     pub(crate) acceleration_structure_geometry: vk::AccelerationStructureGeometryKHR,
     index_buffer_view: crate::IndexBufferView,
     vertex_buffer_view: crate::VertexBufferView,
-    transform: Option<vk::TransformMatrixKHR>,
+    transform_buffer_view: Option<crate::BufferView>,
     pub(crate) vertex_count: u32,
     pub(crate) triangle_count: u32,
     pub(crate) build_range_info: vk::AccelerationStructureBuildRangeInfoKHR,
@@ -20,7 +21,7 @@ impl TriangleGeometry {
     pub fn new(
         index_buffer_view: &crate::IndexBufferView,
         vertex_buffer_view: &crate::VertexBufferView,
-        transform: Option<vk::TransformMatrixKHR>,
+        transform_buffer_view: Option<&crate::BufferView>,
     ) -> Self {
         let mut triangles_data = vk::AccelerationStructureGeometryTrianglesDataKHR::builder()
             .index_type(index_buffer_view.index_type)
@@ -36,9 +37,10 @@ impl TriangleGeometry {
             .vertex_stride(vertex_buffer_view.stride)
             .max_vertex(vertex_buffer_view.count)
             .build();
-        if let Some(transform) = transform {
+        let mut vk_transform: Option<[f32; 12]> = None;
+        if let Some(view) = transform_buffer_view {
             triangles_data.transform_data = vk::DeviceOrHostAddressConstKHR {
-                host_address: transform.matrix.as_ptr() as *const c_void,
+                device_address: view.buffer.device_address() + view.offset,
             }
         }
         let geometry = vk::AccelerationStructureGeometryKHR::builder()
@@ -65,7 +67,7 @@ impl TriangleGeometry {
             acceleration_structure_geometry: geometry,
             index_buffer_view: index_buffer_view.clone(),
             vertex_buffer_view: vertex_buffer_view.clone(),
-            transform,
+            transform_buffer_view: transform_buffer_view.map(|v| v.to_owned()),
             vertex_count,
             triangle_count,
             build_range_info,
