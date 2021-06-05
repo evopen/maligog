@@ -33,4 +33,5 @@ maplit = "1.0"
 dotenv = "0.15"
 gltf = "0.16"
 rayon = "1.5.1"
-
+rpmalloc = "0.2.0"
+bytemuck = "1.5"

@@ -1,10 +1,15 @@
-use std::array::IntoIter;
+#[global_allocator]
+static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
+
+use std::borrow::BorrowMut;
 use std::collections::BTreeMap;
+use std::convert::TryInto;
 use std::iter::FromIterator;
 use std::time::Duration;
 
 use maligog::vk;
 use maligog::BufferView;
+use maligog::Device;
 
 use maplit::btreemap;
 use rayon::iter::IntoParallelRefIterator;
@@ -25,7 +30,7 @@ struct Engine {
     swapchain: maligog::Swapchain,
     image_view: maligog::ImageView,
     descriptor_set: maligog::DescriptorSet,
-    blases: Vec<Vec<maligog::BottomAccelerationStructure>>,
+    tlases: Vec<maligog::TopAccelerationStructure>,
 }
 
 impl Engine {
@@ -136,7 +141,7 @@ impl Engine {
             },
         );
 
-        let mut blases = Vec::new();
+        let mut tlases = Vec::new();
 
         let gltf_test_cases = vec![
             "2.0/Box/glTF/Box.gltf",
@@ -157,7 +162,7 @@ impl Engine {
         if let Ok(p) = std::env::var("GLTF_SAMPLE_PATH") {
             log::info!("testing acceleration structure");
 
-            blases.extend(
+            tlases.extend(
                 gltf_test_cases
                     .par_iter()
                     .map(|test_file| {
@@ -233,10 +238,21 @@ impl Engine {
                                         },
                                         count: vertex_accessor.count() as u32,
                                     };
+                                    let transform:[f32;12] = glam::Mat4::IDENTITY.transpose().as_ref()[..12]
+                                    .try_into()
+                                    .unwrap();
+                                    let transform_buffer_view = maligog::BufferView {
+                                        buffer: device.create_buffer_init(
+                                            Some("transform buffer"),
+                                            bytemuck::cast_slice(&transform),
+                                                maligog::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR, maligog::MemoryLocation::GpuOnly,
+                                        ),
+                                        offset: 0,
+                                    };
                                     maligog::TriangleGeometry::new(
-                                        &&index_buffer_view,
-                                        &&vertex_buffer_view,
-                                        None,
+                                        &index_buffer_view,
+                                        &vertex_buffer_view,
+                                        Some(&transform_buffer_view),
                                     )
                                 })
                                 .collect();
@@ -246,11 +262,57 @@ impl Engine {
                                 &geometries,
                             ));
                         }
-                        blases
+
+                        let scene = doc.default_scene().unwrap();
+
+                        fn process_node(
+                            device: &Device,
+                            node: gltf::Node,
+                            blases: &[maligog::BottomAccelerationStructure],
+                        ) -> Vec<maligog::BLASInstance> {
+                            let mut instances = Vec::new();
+                            if let Some(mesh) = node.mesh() {
+                                instances.push(maligog::BLASInstance::new(
+                                    &device,
+                                    &blases.get(mesh.index()).unwrap(),
+                                    &glam::Mat4::from_cols_array_2d(&node.transform().matrix()),
+                                ));
+                            }
+                            instances.extend(
+                                node.children()
+                                    .map(|n| process_node(&device,n, blases))
+                                    .flatten()
+                                    .map(|mut i| {
+                                        i.set_transform(&i.transform().mul_mat4(
+                                            &glam::Mat4::from_cols_array_2d(
+                                                &node.transform().matrix(),
+                                            ),
+                                        ));
+                                        i
+                                    })
+                                    .collect::<Vec<_>>(),
+                            );
+                            instances
+                        }
+                        let mut instances = scene
+                            .nodes()
+                            .map(|n| process_node(&device,n, &blases))
+                            .flatten()
+                            .collect::<Vec<_>>();
+                        for instance in instances.as_mut_slice() {
+                            instance.build();
+                        }
+                        let geomety = maligog::InstanceGeometry::new(&device, &instances);
+
+                        let tlas = device
+                            .create_top_level_acceleration_structure(scene.name(), &[geomety]);
+
+                        tlas
                     })
                     .collect::<Vec<_>>(),
             );
         }
+        device.wait_idle();
 
         Self {
             instance,
@@ -262,7 +324,7 @@ impl Engine {
             swapchain,
             image_view,
             descriptor_set,
-            blases,
+            tlases,
         }
     }
 }
