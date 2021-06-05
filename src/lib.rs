@@ -1,4 +1,5 @@
 #![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused))]
+#![feature(negative_impls)]
 
 mod acceleration_structure;
 pub mod buffer;

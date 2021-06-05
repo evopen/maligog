@@ -290,7 +290,7 @@ impl Device {
 
     pub fn wait_idle(&self) {
         unsafe {
-            self.handle().device_wait_idle();
+            self.handle().device_wait_idle().unwrap();
         }
     }
 
@@ -337,7 +337,7 @@ impl Drop for DeviceRef {
         log::debug!("dropping device");
 
         unsafe {
-            self.handle.device_wait_idle();
+            self.handle.device_wait_idle().unwrap();
             ManuallyDrop::drop(&mut self.graphics_queue);
             ManuallyDrop::drop(&mut self.compute_queue);
             ManuallyDrop::drop(&mut self.transfer_queue);
