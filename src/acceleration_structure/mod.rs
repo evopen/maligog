@@ -1,8 +1,10 @@
+mod blas_instance;
 mod bottom;
 mod instance_geometry;
 mod top;
 mod triangle_geometry;
 
+pub use blas_instance::BLASInstance;
 pub use bottom::BottomAccelerationStructure;
 pub use instance_geometry::InstanceGeometry;
 pub use top::TopAccelerationStructure;
