@@ -17,7 +17,7 @@ impl CommandBufferResource for crate::RenderPass {}
 pub struct CommandBuffer {
     pub(crate) device: Device,
     pub(crate) handle: vk::CommandBuffer,
-    pub(crate) resources: Vec<Box<dyn CommandBufferResource>>,
+    pub(crate) resources: Vec<Box<dyn CommandBufferResource + Sync + Send>>,
 }
 
 impl CommandBuffer {
