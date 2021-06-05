@@ -70,11 +70,12 @@ impl Queue {
                     fence_handle,
                 )
                 .unwrap();
-            drop(lock);
 
             self.inner
                 .device
                 .wait_for_fences(&[fence_handle], true, std::u64::MAX);
+            drop(lock);
+
             self.inner.device.destroy_fence(fence_handle, None);
         }
     }

@@ -13,6 +13,7 @@ pub struct BottomAceelerationStructureRef {
     pub(crate) device_address: u64,
     device: Device,
     geometries: Vec<super::TriangleGeometry>,
+    as_buffer: crate::Buffer,
 }
 
 #[derive(Clone)]
@@ -119,6 +120,8 @@ impl BottomAccelerationStructure {
                         .acceleration_structure(handle)
                         .build(),
                 );
+            #[cfg(debug_assertions)]
+            device.wait_idle();
             Self {
                 inner: Arc::new(BottomAceelerationStructureRef {
                     name: name.map(|s| s.to_owned()),
@@ -126,6 +129,7 @@ impl BottomAccelerationStructure {
                     device_address,
                     device: device.clone(),
                     geometries: geometries.into_iter().map(|a| a.borrow().clone()).collect(),
+                    as_buffer,
                 }),
             }
         }

@@ -12,6 +12,7 @@ pub(crate) struct TopAccelerationStructureRef {
     device_address: u64,
     device: Device,
     geometries: Vec<super::InstanceGeometry>,
+    as_buffer: crate::Buffer,
 }
 
 #[derive(Clone)]
@@ -113,6 +114,9 @@ impl TopAccelerationStructure {
 
             device.compute_queue().submit_blocking(&[cmd_buf]);
 
+            #[cfg(debug_assertions)]
+            device.wait_idle();
+
             let device_address = device
                 .inner
                 .acceleration_structure_loader
@@ -128,6 +132,7 @@ impl TopAccelerationStructure {
                     device_address,
                     device: device.clone(),
                     geometries: geometries.to_vec(),
+                    as_buffer,
                 }),
             }
         }
