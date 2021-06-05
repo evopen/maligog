@@ -7,9 +7,11 @@ use ash::vk::Handle;
 use crate::Device;
 
 pub(crate) struct TopAccelerationStructureRef {
+    name: Option<String>,
     pub(crate) handle: vk::AccelerationStructureKHR,
     device_address: u64,
     device: Device,
+    geometries: Vec<super::InstanceGeometry>,
 }
 
 #[derive(Clone)]
@@ -21,15 +23,15 @@ impl TopAccelerationStructure {
     pub(crate) fn new(
         name: Option<&str>,
         device: &Device,
-        geometries: &[&super::InstanceGeometry],
-    ) {
+        geometries: &[super::InstanceGeometry],
+    ) -> Self {
         let vk_geometries = geometries
             .iter()
             .map(|t| t.acceleration_structure_geometry)
             .collect::<Vec<_>>();
         let instance_counts = geometries
             .iter()
-            .map(|t| t.instance_count)
+            .map(|t| t.instance_count())
             .collect::<Vec<_>>();
         unsafe {
             let size_info = device
@@ -108,7 +110,51 @@ impl TopAccelerationStructure {
             cmd_buf.encode(|recorder| {
                 recorder.build_acceleration_structure_raw(build_geometry_info, &build_range_infos);
             });
+
             device.compute_queue().submit_blocking(&[cmd_buf]);
+
+            let device_address = device
+                .inner
+                .acceleration_structure_loader
+                .get_acceleration_structure_device_address(
+                    &vk::AccelerationStructureDeviceAddressInfoKHR::builder()
+                        .acceleration_structure(handle)
+                        .build(),
+                );
+            Self {
+                inner: Arc::new(TopAccelerationStructureRef {
+                    name: name.map(|s| s.to_owned()),
+                    handle,
+                    device_address,
+                    device: device.clone(),
+                    geometries: geometries.to_vec(),
+                }),
+            }
+        }
+    }
+
+    pub fn name(&self) -> &Option<String> {
+        &self.inner.name
+    }
+}
+
+impl Device {
+    pub fn create_top_level_acceleration_structure(
+        &self,
+        name: Option<&str>,
+        geometries: &[super::InstanceGeometry],
+    ) -> TopAccelerationStructure {
+        TopAccelerationStructure::new(name, &self, geometries)
+    }
+}
+
+impl Drop for TopAccelerationStructureRef {
+    fn drop(&mut self) {
+        unsafe {
+            self.device
+                .inner
+                .acceleration_structure_loader
+                .destroy_acceleration_structure(self.handle, None);
         }
     }
 }

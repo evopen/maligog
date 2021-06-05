@@ -34,7 +34,8 @@ mod swapchain;
 mod shader_module;
 
 pub use acceleration_structure::{
-    BottomAccelerationStructure, InstanceGeometry, TopAccelerationStructure, TriangleGeometry,
+    BLASInstance, BottomAccelerationStructure, InstanceGeometry, TopAccelerationStructure,
+    TriangleGeometry,
 };
 pub use buffer::Buffer;
 pub use buffer_view::{BufferView, IndexBufferView, VertexBufferView};
