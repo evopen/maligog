@@ -206,6 +206,22 @@ impl<'a> CommandRecorder<'a> {
         );
     }
 
+    pub(crate) unsafe fn copy_image_raw(
+        &mut self,
+        src: vk::Image,
+        dst: vk::Image,
+        regions: &[vk::ImageCopy],
+    ) {
+        self.device().handle().cmd_copy_image(
+            self.command_buffer.handle,
+            src,
+            vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
+            dst,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+            regions,
+        );
+    }
+
     pub(crate) fn pipeline_barrier(&mut self, dependency_info: &vk::DependencyInfoKHR) {
         unsafe {
             self.device()
