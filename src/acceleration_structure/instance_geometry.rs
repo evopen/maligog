@@ -2,6 +2,9 @@ use std::ffi::c_void;
 
 use ash::vk;
 
+unsafe impl Sync for InstanceGeometry {}
+unsafe impl Send for InstanceGeometry {}
+
 pub struct InstanceGeometry {
     pub(crate) acceleration_structure_geometry: vk::AccelerationStructureGeometryKHR,
     pub(crate) build_range_info: vk::AccelerationStructureBuildRangeInfoKHR,

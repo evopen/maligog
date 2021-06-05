@@ -2,6 +2,9 @@ use std::ffi::c_void;
 
 use ash::vk;
 
+unsafe impl Sync for TriangleGeometry {}
+unsafe impl Send for TriangleGeometry {}
+
 #[derive(Clone)]
 pub struct TriangleGeometry {
     pub(crate) acceleration_structure_geometry: vk::AccelerationStructureGeometryKHR,
