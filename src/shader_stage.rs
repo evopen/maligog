@@ -4,9 +4,10 @@ use ash::vk;
 
 use crate::ShaderModule;
 
+#[derive(Clone)]
 pub struct ShaderStage {
     module: ShaderModule,
-    stage: vk::ShaderStageFlags,
+    pub(crate) stage: vk::ShaderStageFlags,
     entry_point: String,
     entry_point_cstr: CString,
 }

@@ -23,6 +23,7 @@ pub mod physical_device;
 mod pipeline;
 mod queue;
 mod queue_family;
+mod ray_tracing;
 mod render_pass;
 mod sampler;
 mod semaphore;
