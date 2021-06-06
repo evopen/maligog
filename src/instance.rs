@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::ffi::{CStr, CString};
 use std::sync::Arc;
 
@@ -9,13 +10,59 @@ use crate::entry::Entry;
 use crate::name;
 use crate::queue_family::QueueFamilyProperties;
 
+unsafe extern "system" fn vulkan_debug_callback(
+    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
+    message_type: vk::DebugUtilsMessageTypeFlagsEXT,
+    p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
+    _user_data: *mut std::os::raw::c_void,
+) -> vk::Bool32 {
+    let callback_data = *p_callback_data;
+    let message_id_number: i32 = callback_data.message_id_number as i32;
+
+    let message_id_name = if callback_data.p_message_id_name.is_null() {
+        Cow::from("")
+    } else {
+        CStr::from_ptr(callback_data.p_message_id_name).to_string_lossy()
+    };
+
+    let message = if callback_data.p_message.is_null() {
+        Cow::from("")
+    } else {
+        CStr::from_ptr(callback_data.p_message).to_string_lossy()
+    };
+    if message_id_number == 1151829889 {
+        log::debug!("suppress device address validation");
+        return vk::FALSE;
+    }
+
+    use vk::DebugUtilsMessageSeverityFlagsEXT;
+    match message_severity {
+        DebugUtilsMessageSeverityFlagsEXT::VERBOSE => {
+            log::debug!("{:?} : {}\n", message_type, message,);
+        }
+        DebugUtilsMessageSeverityFlagsEXT::WARNING => {
+            log::warn!("{:?} : {}\n", message_type, message,);
+        }
+        DebugUtilsMessageSeverityFlagsEXT::ERROR => {
+            log::error!("{:?} : {}\n", message_type, message,);
+        }
+        DebugUtilsMessageSeverityFlagsEXT::INFO => {
+            log::info!("{:?} : {}\n", message_type, message,);
+        }
+        _ => {}
+    }
+
+    vk::FALSE
+}
+
 pub(crate) struct InstanceRef {
     pub(crate) handle: ash::Instance,
     pub(crate) entry: Entry,
     enabled_layers: Vec<name::instance::Layer>,
     enabled_extensions: Vec<name::instance::Extension>,
     pub(crate) surface_loader: Option<ash::extensions::khr::Surface>,
-    pub debug_utils_loader: Option<ash::extensions::ext::DebugUtils>,
+    pub debug_utils_loader: ash::extensions::ext::DebugUtils,
+    debug_call_back: vk::DebugUtilsMessengerEXT,
     display_loader: ash::extensions::khr::Display,
 }
 
@@ -31,7 +78,10 @@ impl Instance {
         extensions: &[name::instance::Extension],
     ) -> Self {
         let app_name = CString::new(env!("CARGO_PKG_NAME")).unwrap();
-        let engine_name = CString::new("Silly Cat Engine").unwrap();
+        let engine_name = CString::new("maligog").unwrap();
+
+        let mut extensions = extensions.to_owned();
+        extensions.push(crate::name::instance::Extension::ExtDebugUtils);
 
         let appinfo = vk::ApplicationInfo::builder()
             .application_name(&app_name)
@@ -66,7 +116,7 @@ impl Instance {
             .collect::<Vec<_>>();
 
         let supported_extensions = entry.supported_instance_extensions();
-        for extension in extensions {
+        for extension in &extensions {
             if !supported_extensions.contains(&extension.to_owned()) {
                 panic!("not support extension {}", &extension.as_ref());
             }
@@ -83,14 +133,21 @@ impl Instance {
             false => None,
         };
 
-        let debug_utils_loader =
-            match extensions.contains(&name::instance::Extension::ExtDebugUtils) {
-                true => Some(ash::extensions::ext::DebugUtils::new(
-                    &entry.handle,
-                    &handle,
-                )),
-                false => None,
-            };
+        let debug_utils_loader = ash::extensions::ext::DebugUtils::new(&entry.handle, &handle);
+        let debug_call_back = unsafe {
+            debug_utils_loader.create_debug_utils_messenger(
+                &vk::DebugUtilsMessengerCreateInfoEXT::builder()
+                    .message_severity(
+                        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
+                            | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+                            | vk::DebugUtilsMessageSeverityFlagsEXT::INFO,
+                    )
+                    .message_type(vk::DebugUtilsMessageTypeFlagsEXT::all())
+                    .pfn_user_callback(Some(vulkan_debug_callback)),
+                None,
+            )
+        }
+        .unwrap();
 
         let display_loader = ash::extensions::khr::Display::new(&entry.handle, &handle);
 
@@ -103,6 +160,7 @@ impl Instance {
                 display_loader,
                 enabled_layers: layers.to_vec(),
                 enabled_extensions: extensions.to_vec(),
+                debug_call_back,
             }),
         }
     }
@@ -140,18 +198,20 @@ impl Instance {
                         .get_physical_device_queue_family_properties(*pdevice)
                         .into_iter()
                         .enumerate()
-                        .map(|(index, properties)| QueueFamilyProperties {
-                            index: index as u32,
-                            support_graphics: properties
-                                .queue_flags
-                                .contains(vk::QueueFlags::GRAPHICS),
-                            support_compute: properties
-                                .queue_flags
-                                .contains(vk::QueueFlags::COMPUTE),
-                            support_transfer: properties
-                                .queue_flags
-                                .contains(vk::QueueFlags::TRANSFER),
-                            count: properties.queue_count,
+                        .map(|(index, properties)| {
+                            QueueFamilyProperties {
+                                index: index as u32,
+                                support_graphics: properties
+                                    .queue_flags
+                                    .contains(vk::QueueFlags::GRAPHICS),
+                                support_compute: properties
+                                    .queue_flags
+                                    .contains(vk::QueueFlags::COMPUTE),
+                                support_transfer: properties
+                                    .queue_flags
+                                    .contains(vk::QueueFlags::TRANSFER),
+                                count: properties.queue_count,
+                            }
                         })
                         .collect();
 
@@ -175,6 +235,8 @@ impl Instance {
 impl Drop for InstanceRef {
     fn drop(&mut self) {
         unsafe {
+            self.debug_utils_loader
+                .destroy_debug_utils_messenger(self.debug_call_back, None);
             self.handle.destroy_instance(None);
         }
     }

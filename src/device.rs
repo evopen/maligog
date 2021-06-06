@@ -308,26 +308,21 @@ impl Device {
         object_handle: u64,
         object_type: vk::ObjectType,
     ) {
-        if let Some(debug_loader) = self
-            .inner
-            .pdevice
-            .instance
-            .inner
-            .debug_utils_loader
-            .as_ref()
-        {
-            unsafe {
-                debug_loader
-                    .debug_utils_set_object_name(
-                        self.handle().handle(),
-                        &vk::DebugUtilsObjectNameInfoEXT::builder()
-                            .object_handle(object_handle)
-                            .object_type(object_type)
-                            .object_name(CString::new(name).unwrap().as_ref())
-                            .build(),
-                    )
-                    .unwrap();
-            }
+        unsafe {
+            self.inner
+                .pdevice
+                .instance
+                .inner
+                .debug_utils_loader
+                .debug_utils_set_object_name(
+                    self.handle().handle(),
+                    &vk::DebugUtilsObjectNameInfoEXT::builder()
+                        .object_handle(object_handle)
+                        .object_type(object_type)
+                        .object_name(CString::new(name).unwrap().as_ref())
+                        .build(),
+                )
+                .unwrap();
         }
     }
 
