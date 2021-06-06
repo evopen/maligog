@@ -7,8 +7,8 @@ use ash::vk::{self, Handle};
 
 pub(crate) struct RayTracingPipelineRef {
     handle: vk::Pipeline,
-    layout: Arc<PipelineLayout>,
-    stages: Vec<Arc<ShaderStage>>,
+    layout: PipelineLayout,
+    stages: Vec<ShaderStage>,
     sbt_buffer: Buffer,
     sbt_stride: u32,
     device: Device,
@@ -22,8 +22,8 @@ impl RayTracingPipeline {
     pub fn new(
         name: Option<&str>,
         device: &Device,
-        layout: Arc<PipelineLayout>,
-        stages: Vec<Arc<ShaderStage>>,
+        layout: PipelineLayout,
+        stages: Vec<ShaderStage>,
         recursion_depth: u32,
     ) -> Self {
         let stage_create_infos = stages
