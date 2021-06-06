@@ -18,13 +18,14 @@ impl BLASInstance {
         device: &Device,
         blas: &super::BottomAccelerationStructure,
         transform: &glam::Mat4,
+        sbt_record_offset: u32,
     ) -> Self {
         let vk_instance = vk::AccelerationStructureInstanceKHR {
             transform: vk::TransformMatrixKHR {
                 matrix: transform.transpose().as_ref()[..12].try_into().unwrap(),
             },
             instance_custom_index_and_mask: 0 | (0xFF << 24),
-            instance_shader_binding_table_record_offset_and_flags: 0
+            instance_shader_binding_table_record_offset_and_flags: sbt_record_offset
                 | (vk::GeometryInstanceFlagsKHR::TRIANGLE_FACING_CULL_DISABLE.as_raw() << 24),
             acceleration_structure_reference: vk::AccelerationStructureReferenceKHR {
                 device_handle: blas.inner.device_address,
