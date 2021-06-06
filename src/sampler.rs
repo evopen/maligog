@@ -25,23 +25,7 @@ impl Sampler {
         unsafe {
             let handle = device.inner.handle.create_sampler(&info, None).unwrap();
             if let Some(name) = name {
-                device
-                    .inner
-                    .pdevice
-                    .instance
-                    .inner
-                    .debug_utils_loader
-                    .as_ref()
-                    .unwrap()
-                    .debug_utils_set_object_name(
-                        device.inner.handle.handle(),
-                        &vk::DebugUtilsObjectNameInfoEXT::builder()
-                            .object_handle(handle.as_raw())
-                            .object_type(vk::ObjectType::SAMPLER)
-                            .object_name(CString::new(name).unwrap().as_ref())
-                            .build(),
-                    )
-                    .unwrap();
+                device.debug_set_object_name(name, handle.as_raw(), vk::ObjectType::SAMPLER);
             }
             Self {
                 inner: Arc::new(SamplerRef {
