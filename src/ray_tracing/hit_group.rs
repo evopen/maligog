@@ -21,7 +21,7 @@ impl TrianglesHitGroup {
 #[derive(Clone)]
 pub struct ProceduralHitGroup {}
 
-pub(crate) trait HitGroup: dyn_clone::DynClone + 'static {
+pub trait HitGroup: dyn_clone::DynClone + 'static {
     fn shader_stage_create_infos(&self) -> Vec<vk::PipelineShaderStageCreateInfo>;
     fn shader_group_type(&self) -> vk::RayTracingShaderGroupTypeKHR;
     fn has_closest_hit_shader(&self) -> bool;
@@ -33,7 +33,7 @@ impl HitGroup for TrianglesHitGroup {
     fn shader_stage_create_infos(&self) -> Vec<vk::PipelineShaderStageCreateInfo> {
         let mut infos = Vec::new();
         infos.push(self.closest_hit_shader.shader_stage_create_info());
-        if let Some(any_hit_shader) = self.any_hit_shader {
+        if let Some(any_hit_shader) = self.any_hit_shader.as_ref() {
             infos.push(any_hit_shader.shader_stage_create_info());
         }
         infos

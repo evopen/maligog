@@ -56,7 +56,7 @@ pub use image::Image;
 pub use image_view::ImageView;
 pub use instance::Instance;
 pub use pipeline::{GraphicsPipeline, PipelineLayout, RayTracingPipeline};
-pub(crate) use ray_tracing::HitGroup;
+pub use ray_tracing::HitGroup;
 pub use ray_tracing::{ProceduralHitGroup, TrianglesHitGroup};
 pub use render_pass::RenderPass;
 pub use sampler::Sampler;

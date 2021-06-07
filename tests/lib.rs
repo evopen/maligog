@@ -276,6 +276,7 @@ impl Engine {
                                     &device,
                                     &blases.get(mesh.index()).unwrap(),
                                     &glam::Mat4::from_cols_array_2d(&node.transform().matrix()),
+                                    0
                                 ));
                             }
                             instances.extend(
