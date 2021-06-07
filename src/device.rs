@@ -75,6 +75,7 @@ impl Device {
 
             let mut device_extensions = device_extensions.to_vec();
             device_extensions.push(crate::name::device::Extension::KhrSynchronization2);
+            device_extensions.push(crate::name::device::Extension::KhrVulkanMemoryModel);
             let device_extension_names = device_extensions
                 .iter()
                 .map(|extension| CString::new(extension.as_ref()).unwrap())
@@ -98,6 +99,10 @@ impl Device {
             let mut device_buffer_address_pnext =
                 vk::PhysicalDeviceBufferDeviceAddressFeatures::builder()
                     .buffer_device_address(true)
+                    .build();
+            let mut vulkan_memory_model_pnext =
+                vk::PhysicalDeviceVulkanMemoryModelFeatures::builder()
+                    .vulkan_memory_model(true)
                     .build();
             let mut fea_16_bit_storage_pnext = vk::PhysicalDevice16BitStorageFeatures::builder()
                 .uniform_and_storage_buffer16_bit_access(true)
@@ -141,7 +146,8 @@ impl Device {
             device_create_info = device_create_info
                 .push_next(&mut device_buffer_address_pnext)
                 .push_next(&mut fea_16_bit_storage_pnext)
-                .push_next(&mut scalar_block_layout_pnext);
+                .push_next(&mut scalar_block_layout_pnext)
+                .push_next(&mut vulkan_memory_model_pnext);
 
             let handle = instance
                 .inner

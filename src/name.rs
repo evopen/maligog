@@ -45,6 +45,8 @@ pub mod device {
         KhrRayQuery,
         #[strum(serialize = "VK_KHR_synchronization2")]
         KhrSynchronization2,
+        #[strum(serialize = "VK_KHR_vulkan_memory_model")]
+        KhrVulkanMemoryModel,
     }
 }
 
