@@ -8,15 +8,16 @@ use ash::vk::{self, Handle};
 pub(crate) struct RayTracingPipelineRef {
     handle: vk::Pipeline,
     layout: PipelineLayout,
-    ray_gen_shader: ShaderStage,
-    miss_shaders: Vec<ShaderStage>,
-    hit_groups: Vec<Box<dyn crate::HitGroup + 'static>>,
+    pub(crate) ray_gen_shader: ShaderStage,
+    pub(crate) miss_shaders: Vec<ShaderStage>,
+    pub(crate) hit_groups: Vec<Box<dyn crate::HitGroup + 'static>>,
     device: Device,
-    shader_group_handles: Vec<u8>,
+    pub(crate) shader_group_handles: Vec<u8>,
 }
 
+#[derive(Clone)]
 pub struct RayTracingPipeline {
-    inner: Arc<RayTracingPipelineRef>,
+    pub(crate) inner: Arc<RayTracingPipelineRef>,
 }
 
 impl RayTracingPipeline {
