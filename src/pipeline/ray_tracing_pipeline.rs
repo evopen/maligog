@@ -8,7 +8,7 @@ use ash::vk::{self, Handle};
 pub(crate) struct RayTracingPipelineRef {
     handle: vk::Pipeline,
     layout: PipelineLayout,
-    ray_gen_shaders: Vec<ShaderStage>,
+    ray_gen_shader: ShaderStage,
     miss_shaders: Vec<ShaderStage>,
     hit_groups: Vec<Box<dyn crate::HitGroup + 'static>>,
     device: Device,
@@ -24,26 +24,19 @@ impl RayTracingPipeline {
         name: Option<&str>,
         device: &Device,
         layout: PipelineLayout,
-        ray_gen_shaders: &[ShaderStage],
+        ray_gen_shader: &ShaderStage,
         miss_shaders: &[ShaderStage],
         hit_groups: &[&dyn crate::HitGroup],
         recursion_depth: u32,
     ) -> Self {
         // validation
-        for ray_gen_shader in ray_gen_shaders {
-            assert!(ray_gen_shader.stage == vk::ShaderStageFlags::RAYGEN_KHR);
-        }
+        assert!(ray_gen_shader.stage == vk::ShaderStageFlags::RAYGEN_KHR);
         for miss_shader in miss_shaders {
             assert!(miss_shader.stage == vk::ShaderStageFlags::MISS_KHR);
         }
 
         let mut stage_create_infos = Vec::new();
-        stage_create_infos.extend(
-            ray_gen_shaders
-                .iter()
-                .map(|s| s.shader_stage_create_info())
-                .collect::<Vec<_>>(),
-        );
+        stage_create_infos.push(ray_gen_shader.shader_stage_create_info());
         stage_create_infos.extend(
             miss_shaders
                 .iter()
@@ -60,18 +53,17 @@ impl RayTracingPipeline {
 
         let mut group_create_infos = Vec::new();
         let mut i = 0;
-        for ray_gen_shader in ray_gen_shaders {
-            group_create_infos.push(
-                vk::RayTracingShaderGroupCreateInfoKHR::builder()
-                    .ty(vk::RayTracingShaderGroupTypeKHR::GENERAL)
-                    .general_shader(i)
-                    .closest_hit_shader(vk::SHADER_UNUSED_KHR)
-                    .any_hit_shader(vk::SHADER_UNUSED_KHR)
-                    .intersection_shader(vk::SHADER_UNUSED_KHR)
-                    .build(),
-            );
-            i += 1;
-        }
+        group_create_infos.push(
+            vk::RayTracingShaderGroupCreateInfoKHR::builder()
+                .ty(vk::RayTracingShaderGroupTypeKHR::GENERAL)
+                .general_shader(i)
+                .closest_hit_shader(vk::SHADER_UNUSED_KHR)
+                .any_hit_shader(vk::SHADER_UNUSED_KHR)
+                .intersection_shader(vk::SHADER_UNUSED_KHR)
+                .build(),
+        );
+        i += 1;
+
         for miss_shader in miss_shaders {
             group_create_infos.push(
                 vk::RayTracingShaderGroupCreateInfoKHR::builder()
@@ -149,7 +141,7 @@ impl RayTracingPipeline {
                     handle,
                     layout,
                     device: device.clone(),
-                    ray_gen_shaders: ray_gen_shaders.to_owned(),
+                    ray_gen_shader: ray_gen_shader.to_owned(),
                     miss_shaders: miss_shaders.to_owned(),
                     hit_groups: hit_groups
                         .iter()
