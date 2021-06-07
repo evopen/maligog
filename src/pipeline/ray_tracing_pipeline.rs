@@ -12,6 +12,7 @@ pub(crate) struct RayTracingPipelineRef {
     miss_shaders: Vec<ShaderStage>,
     hit_groups: Vec<Box<dyn crate::HitGroup + 'static>>,
     device: Device,
+    shader_group_handles: Vec<u8>,
 }
 
 pub struct RayTracingPipeline {
@@ -131,7 +132,17 @@ impl RayTracingPipeline {
             if let Some(name) = name {
                 device.debug_set_object_name(name, handle.as_raw(), vk::ObjectType::PIPELINE);
             }
-            let a = dyn_clone::clone_box(hit_groups[0]);
+
+            let rt_p = &device.inner.pdevice.ray_tracing_pipeline_properties;
+            let shader_group_handles = device
+                .ray_tracing_pipeline_loader()
+                .get_ray_tracing_shader_group_handles(
+                    handle,
+                    0,
+                    group_create_infos.len() as u32,
+                    rt_p.shader_group_handle_size as usize * group_create_infos.len(),
+                )
+                .unwrap();
 
             Self {
                 inner: Arc::new(RayTracingPipelineRef {
@@ -144,6 +155,7 @@ impl RayTracingPipeline {
                         .iter()
                         .map(|g| dyn_clone::clone_box(*g))
                         .collect(),
+                    shader_group_handles,
                 }),
             }
         }
