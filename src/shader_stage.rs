@@ -13,10 +13,10 @@ pub struct ShaderStage {
 }
 
 impl ShaderStage {
-    pub fn new(module: ShaderModule, stage: vk::ShaderStageFlags, entry_point: &str) -> Self {
+    pub fn new(module: &ShaderModule, stage: vk::ShaderStageFlags, entry_point: &str) -> Self {
         let entry_point_cstr = CString::new(entry_point).unwrap();
         Self {
-            module,
+            module: module.clone(),
             stage,
             entry_point: entry_point.to_string(),
             entry_point_cstr,

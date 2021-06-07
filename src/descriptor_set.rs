@@ -78,7 +78,7 @@ impl DescriptorSetRef {
         let mut writes = Vec::new();
 
         for (binding, info) in &update_infos {
-            let write_builder = vk::WriteDescriptorSet::builder()
+            let mut write_builder = vk::WriteDescriptorSet::builder()
                 .dst_set(self.handle)
                 .dst_binding(*binding)
                 .descriptor_type(
@@ -153,9 +153,11 @@ impl DescriptorSetRef {
                             .acceleration_structures(tlas_handles.as_slice())
                             .build(),
                     );
-                    write_builder
+                    let mut write = write_builder
                         .push_next(write_acceleration_structure.as_mut().unwrap())
-                        .build()
+                        .build();
+                    write.descriptor_count = acceleration_structures.len() as u32;
+                    write
                 }
             };
             writes.push(write);

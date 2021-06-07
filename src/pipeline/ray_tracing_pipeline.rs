@@ -162,3 +162,25 @@ impl Drop for RayTracingPipelineRef {
         }
     }
 }
+
+impl Device {
+    pub fn create_ray_tracing_pipeline(
+        &self,
+        name: Option<&str>,
+        layout: PipelineLayout,
+        ray_gen_shader: &ShaderStage,
+        miss_shaders: &[ShaderStage],
+        hit_groups: &[&dyn crate::HitGroup],
+        recursion_depth: u32,
+    ) -> RayTracingPipeline {
+        RayTracingPipeline::new(
+            name,
+            self,
+            layout,
+            ray_gen_shader,
+            miss_shaders,
+            hit_groups,
+            recursion_depth,
+        )
+    }
+}
