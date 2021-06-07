@@ -35,3 +35,6 @@ gltf = "0.16"
 rayon = "1.5.1"
 rpmalloc = "0.2.0"
 bytemuck = "1.5"
+maligog-gltf = { path = "../maligog-gltf" }
+simple-rt-shader = { path = "../simple-rt-shader/simple-rt-shader" }
+

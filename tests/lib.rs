@@ -1,6 +1,8 @@
 #[global_allocator]
 static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
 
+mod rt_pipeline;
+
 use std::borrow::BorrowMut;
 use std::collections::BTreeMap;
 use std::convert::TryInto;
