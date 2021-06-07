@@ -8,9 +8,9 @@ use ash::vk::{self, Handle};
 pub(crate) struct RayTracingPipelineRef {
     handle: vk::Pipeline,
     layout: PipelineLayout,
-    stages: Vec<ShaderStage>,
-    sbt_buffer: Buffer,
-    sbt_stride: u32,
+    ray_gen_shaders: Vec<ShaderStage>,
+    miss_shaders: Vec<ShaderStage>,
+    hit_groups: Vec<Box<dyn crate::HitGroup + 'static>>,
     device: Device,
 }
 
@@ -23,51 +23,92 @@ impl RayTracingPipeline {
         name: Option<&str>,
         device: &Device,
         layout: PipelineLayout,
-        stages: Vec<ShaderStage>,
+        ray_gen_shaders: &[ShaderStage],
+        miss_shaders: &[ShaderStage],
+        hit_groups: &[&dyn crate::HitGroup],
         recursion_depth: u32,
     ) -> Self {
-        let stage_create_infos = stages
-            .iter()
-            .map(|s| s.shader_stage_create_info())
-            .collect::<Vec<_>>();
-        let group_create_infos = stage_create_infos
-            .iter()
-            .enumerate()
-            .map(|(i, info)| {
-                match info.stage {
-                    vk::ShaderStageFlags::RAYGEN_KHR => {
-                        vk::RayTracingShaderGroupCreateInfoKHR::builder()
-                            .ty(vk::RayTracingShaderGroupTypeKHR::GENERAL)
-                            .closest_hit_shader(vk::SHADER_UNUSED_KHR)
-                            .general_shader(i as u32)
-                            .any_hit_shader(vk::SHADER_UNUSED_KHR)
-                            .intersection_shader(vk::SHADER_UNUSED_KHR)
-                            .build()
-                    }
-                    vk::ShaderStageFlags::CLOSEST_HIT_KHR => {
-                        vk::RayTracingShaderGroupCreateInfoKHR::builder()
-                            .ty(vk::RayTracingShaderGroupTypeKHR::TRIANGLES_HIT_GROUP)
-                            .closest_hit_shader(i as u32)
-                            .general_shader(vk::SHADER_UNUSED_KHR)
-                            .any_hit_shader(vk::SHADER_UNUSED_KHR)
-                            .intersection_shader(vk::SHADER_UNUSED_KHR)
-                            .build()
-                    }
-                    vk::ShaderStageFlags::MISS_KHR => {
-                        vk::RayTracingShaderGroupCreateInfoKHR::builder()
-                            .ty(vk::RayTracingShaderGroupTypeKHR::GENERAL)
-                            .closest_hit_shader(vk::SHADER_UNUSED_KHR)
-                            .general_shader(i as u32)
-                            .any_hit_shader(vk::SHADER_UNUSED_KHR)
-                            .intersection_shader(vk::SHADER_UNUSED_KHR)
-                            .build()
-                    }
-                    _ => {
-                        unimplemented!()
-                    }
-                }
-            })
-            .collect::<Vec<_>>();
+        // validation
+        for ray_gen_shader in ray_gen_shaders {
+            assert!(ray_gen_shader.stage == vk::ShaderStageFlags::RAYGEN_KHR);
+        }
+        for miss_shader in miss_shaders {
+            assert!(miss_shader.stage == vk::ShaderStageFlags::MISS_KHR);
+        }
+
+        let mut stage_create_infos = Vec::new();
+        stage_create_infos.extend(
+            ray_gen_shaders
+                .iter()
+                .map(|s| s.shader_stage_create_info())
+                .collect::<Vec<_>>(),
+        );
+        stage_create_infos.extend(
+            miss_shaders
+                .iter()
+                .map(|s| s.shader_stage_create_info())
+                .collect::<Vec<_>>(),
+        );
+        stage_create_infos.extend(
+            hit_groups
+                .iter()
+                .map(|g| g.shader_stage_create_infos())
+                .flatten()
+                .collect::<Vec<_>>(),
+        );
+
+        let mut group_create_infos = Vec::new();
+        let mut i = 0;
+        for ray_gen_shader in ray_gen_shaders {
+            group_create_infos.push(
+                vk::RayTracingShaderGroupCreateInfoKHR::builder()
+                    .ty(vk::RayTracingShaderGroupTypeKHR::GENERAL)
+                    .general_shader(i)
+                    .closest_hit_shader(vk::SHADER_UNUSED_KHR)
+                    .any_hit_shader(vk::SHADER_UNUSED_KHR)
+                    .intersection_shader(vk::SHADER_UNUSED_KHR)
+                    .build(),
+            );
+            i += 1;
+        }
+        for miss_shader in miss_shaders {
+            group_create_infos.push(
+                vk::RayTracingShaderGroupCreateInfoKHR::builder()
+                    .ty(vk::RayTracingShaderGroupTypeKHR::GENERAL)
+                    .general_shader(i)
+                    .closest_hit_shader(vk::SHADER_UNUSED_KHR)
+                    .any_hit_shader(vk::SHADER_UNUSED_KHR)
+                    .intersection_shader(vk::SHADER_UNUSED_KHR)
+                    .build(),
+            );
+            i += 1;
+        }
+        for hit_group in hit_groups {
+            group_create_infos.push(
+                vk::RayTracingShaderGroupCreateInfoKHR::builder()
+                    .ty(hit_group.shader_group_type())
+                    .general_shader(vk::SHADER_UNUSED_KHR)
+                    .closest_hit_shader(i)
+                    .any_hit_shader(match hit_group.has_any_hit_shader() {
+                        true => {
+                            i += 1;
+                            i
+                        }
+                        false => vk::SHADER_UNUSED_KHR,
+                    })
+                    .intersection_shader(match hit_group.has_any_hit_shader() {
+                        true => {
+                            i += 1;
+                            i
+                        }
+                        false => vk::SHADER_UNUSED_KHR,
+                    })
+                    .build(),
+            );
+            i += 1;
+        }
+        drop(i);
+
         unsafe {
             let handle = device
                 .ray_tracing_pipeline_loader()
@@ -90,64 +131,22 @@ impl RayTracingPipeline {
             if let Some(name) = name {
                 device.debug_set_object_name(name, handle.as_raw(), vk::ObjectType::PIPELINE);
             }
-
-            let rt_p = &device.inner.pdevice.ray_tracing_pipeline_properties;
-
-            let shader_handle_storage = device
-                .ray_tracing_pipeline_loader()
-                .get_ray_tracing_shader_group_handles(
-                    handle,
-                    0,
-                    group_create_infos.len() as u32,
-                    rt_p.shader_group_handle_size as usize * group_create_infos.len(),
-                )
-                .unwrap();
-            assert!(rt_p.shader_group_base_alignment % rt_p.shader_group_handle_alignment == 0);
-            let sbt_stride = rt_p.shader_group_base_alignment
-                * ((rt_p.shader_group_handle_size + rt_p.shader_group_base_alignment - 1)
-                    / rt_p.shader_group_base_alignment);
-            assert!(sbt_stride <= rt_p.max_shader_group_stride);
-            assert!(sbt_stride == 64);
-
-            let sbt_size = sbt_stride * group_create_infos.len() as u32;
-
-            let mut temp: Vec<u8> = vec![0; sbt_size as usize];
-            for group_index in 0..group_create_infos.len() {
-                std::ptr::copy_nonoverlapping(
-                    shader_handle_storage
-                        .as_ptr()
-                        .add(group_index * rt_p.shader_group_handle_size as usize),
-                    temp.as_mut_ptr().add(group_index * sbt_stride as usize),
-                    rt_p.shader_group_handle_size as usize,
-                );
-            }
-            let sbt_buffer = device.create_buffer_init(
-                Some("sbt buffer"),
-                temp,
-                vk::BufferUsageFlags::SHADER_BINDING_TABLE_KHR
-                    | vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS,
-                gpu_allocator::MemoryLocation::GpuOnly,
-            );
+            let a = dyn_clone::clone_box(hit_groups[0]);
 
             Self {
                 inner: Arc::new(RayTracingPipelineRef {
                     handle,
                     layout,
-                    stages,
-                    sbt_buffer,
-                    sbt_stride,
                     device: device.clone(),
+                    ray_gen_shaders: ray_gen_shaders.to_owned(),
+                    miss_shaders: miss_shaders.to_owned(),
+                    hit_groups: hit_groups
+                        .iter()
+                        .map(|g| dyn_clone::clone_box(*g))
+                        .collect(),
                 }),
             }
         }
-    }
-
-    pub fn sbt_buffer(&self) -> &Buffer {
-        &self.inner.sbt_buffer
-    }
-
-    pub fn sbt_stride(&self) -> u32 {
-        self.inner.sbt_stride
     }
 }
 
