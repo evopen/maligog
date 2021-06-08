@@ -116,6 +116,8 @@ impl Device {
                     .build();
 
             let vk_device_features = vk::PhysicalDeviceFeatures {
+                shader_storage_image_write_without_format: vk::TRUE,
+                shader_storage_image_read_without_format: vk::TRUE,
                 ..Default::default()
             };
 
