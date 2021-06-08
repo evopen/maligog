@@ -20,6 +20,8 @@ struct Engine {
     image: maligog::Image,
     swapchain: maligog::Swapchain,
     descriptor_set: maligog::DescriptorSet,
+    pipeline: maligog::RayTracingPipeline,
+    shader_binding_tables: maligog::PipelineShaderBindingTables,
 }
 
 impl Engine {
@@ -112,7 +114,7 @@ impl Engine {
         let miss_stage =
             maligog::ShaderStage::new(&module, maligog::ShaderStageFlags::MISS_KHR, "miss");
         let tri_hg = maligog::TrianglesHitGroup::new(&hit_stage, None);
-        device.create_ray_tracing_pipeline(
+        let pipeline = device.create_ray_tracing_pipeline(
             Some("a rt pipeline"),
             pipeline_layout,
             &rg_stage,
@@ -120,6 +122,7 @@ impl Engine {
             &[&tri_hg],
             30,
         );
+        let shader_binding_tables = pipeline.create_shader_binding_tables();
 
         device.wait_idle();
 
@@ -129,7 +132,86 @@ impl Engine {
             image,
             swapchain,
             descriptor_set,
+            shader_binding_tables,
+            pipeline,
         }
+    }
+
+    pub fn render(&self) {
+        let index = self.swapchain.acquire_next_image().unwrap();
+        let present_img = self.swapchain.get_image(index);
+        // present_img.set_layout(
+        //     maligog::ImageLayout::UNDEFINED,
+        //     maligog::ImageLayout::GENERAL,
+        // );
+
+        let mut cmd_buf = self.device.create_command_buffer(
+            Some("main cmdbuf"),
+            self.device.graphics_queue_family_index(),
+        );
+        cmd_buf.encode(|rec| {
+            rec.bind_ray_tracing_pipeline(&self.pipeline, |rec| {
+                rec.bind_descriptor_sets(vec![&self.descriptor_set], 0);
+                rec.trace_ray(
+                    &self.shader_binding_tables.get_raygen_table(),
+                    &self.shader_binding_tables.get_miss_table(),
+                    &self.shader_binding_tables.get_hit_table(),
+                    &self.shader_binding_tables.get_callable_table(),
+                    self.image.width(),
+                    self.image.height(),
+                    1,
+                );
+            });
+
+            rec.blit_image(
+                &self.image,
+                maligog::ImageLayout::GENERAL,
+                &&present_img,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                &[vk::ImageBlit::builder()
+                    .src_subresource(
+                        vk::ImageSubresourceLayers::builder()
+                            .aspect_mask(vk::ImageAspectFlags::COLOR)
+                            .layer_count(1)
+                            .base_array_layer(0)
+                            .mip_level(0)
+                            .build(),
+                    )
+                    .src_offsets([
+                        vk::Offset3D { x: 0, y: 0, z: 0 },
+                        vk::Offset3D {
+                            x: self.image.width() as i32,
+                            y: self.image.height() as i32,
+                            z: 1,
+                        },
+                    ])
+                    .dst_offsets([
+                        vk::Offset3D { x: 0, y: 0, z: 0 },
+                        vk::Offset3D {
+                            x: present_img.width() as i32,
+                            y: present_img.height() as i32,
+                            z: 1,
+                        },
+                    ])
+                    .dst_subresource(
+                        vk::ImageSubresourceLayers::builder()
+                            .aspect_mask(vk::ImageAspectFlags::COLOR)
+                            .layer_count(1)
+                            .base_array_layer(0)
+                            .mip_level(0)
+                            .build(),
+                    )
+                    .build()],
+                vk::Filter::NEAREST,
+            );
+        });
+        self.device.graphics_queue().submit_blocking(&[cmd_buf]);
+        // present_img.set_layout(
+        //     maligog::ImageLayout::GENERAL,
+        //     maligog::ImageLayout::PRESENT_SRC_KHR,
+        // );
+        self.swapchain
+            .present(index, &[&self.swapchain.image_available_semaphore()]);
     }
 }
 
@@ -147,22 +229,25 @@ fn test_rt_pipeline() {
         .unwrap();
     let mut engine = Engine::new(&win);
 
-    let mut frame_counter: u64 = 0;
     event_loop.run_return(|event, _, control_flow| {
-        if frame_counter > 5 {
-            *control_flow = winit::event_loop::ControlFlow::Exit;
-        } else {
-            *control_flow = winit::event_loop::ControlFlow::Poll;
+        *control_flow = winit::event_loop::ControlFlow::Poll;
+        match event {
+            winit::event::Event::WindowEvent { window_id, event } => {
+                match event {
+                    winit::event::WindowEvent::CloseRequested => {
+                        *control_flow = winit::event_loop::ControlFlow::Exit;
+                    }
+                    _ => {}
+                }
+            }
+            winit::event::Event::MainEventsCleared => {
+                win.request_redraw();
+            }
+            winit::event::Event::RedrawRequested(_) => {
+                engine.render();
+            }
+            _ => {}
         }
-        frame_counter += 1;
-        let index = engine.swapchain.acquire_next_image().unwrap();
-        engine.swapchain.get_image(index).set_layout(
-            maligog::ImageLayout::UNDEFINED,
-            maligog::ImageLayout::PRESENT_SRC_KHR,
-        );
-        engine
-            .swapchain
-            .present(index, &[&engine.swapchain.image_available_semaphore()]);
     });
     engine.device.wait_idle();
 }
