@@ -4,16 +4,23 @@ use std::sync::Arc;
 use crate::{Buffer, Device, RenderPass, ShaderStage};
 use ash::vk::{self, Handle};
 
-struct ShaderBindingTables {
+pub struct ShaderBindingTable {
+    parent: PipelineShaderBindingTables,
+    pub(crate) region: vk::StridedDeviceAddressRegionKHR,
+}
+
+#[derive(Clone)]
+pub struct PipelineShaderBindingTables {
+    rt_pipeline: crate::RayTracingPipeline,
     sbt_buffer: Buffer,
     ray_tracing_pipeline: crate::RayTracingPipeline,
-    ray_gen_table: vk::StridedDeviceAddressRegionKHR,
+    raygen_table: vk::StridedDeviceAddressRegionKHR,
     miss_table: vk::StridedDeviceAddressRegionKHR,
     hit_table: vk::StridedDeviceAddressRegionKHR,
     callable_table: vk::StridedDeviceAddressRegionKHR,
 }
 
-impl ShaderBindingTables {
+impl PipelineShaderBindingTables {
     pub fn new(device: &Device, pipeline: &crate::RayTracingPipeline) -> Self {
         let rt_p = &device.inner.pdevice.ray_tracing_pipeline_properties;
         let sbt_base_alignment = rt_p.shader_group_base_alignment as usize;
@@ -64,12 +71,44 @@ impl ShaderBindingTables {
             .build();
         let callable_table = vk::StridedDeviceAddressRegionKHR::default();
         Self {
+            rt_pipeline: pipeline.clone(),
             sbt_buffer,
             ray_tracing_pipeline: pipeline.to_owned(),
-            ray_gen_table,
+            raygen_table: ray_gen_table,
             miss_table,
             hit_table,
             callable_table,
         }
+    }
+
+    pub fn get_raygen_table(&self) -> ShaderBindingTable {
+        ShaderBindingTable {
+            parent: self.clone(),
+            region: self.raygen_table,
+        }
+    }
+    pub fn get_miss_table(&self) -> ShaderBindingTable {
+        ShaderBindingTable {
+            parent: self.clone(),
+            region: self.miss_table,
+        }
+    }
+    pub fn get_hit_table(&self) -> ShaderBindingTable {
+        ShaderBindingTable {
+            parent: self.clone(),
+            region: self.hit_table,
+        }
+    }
+    pub fn get_callable_table(&self) -> ShaderBindingTable {
+        ShaderBindingTable {
+            parent: self.clone(),
+            region: self.callable_table,
+        }
+    }
+}
+
+impl crate::RayTracingPipeline {
+    pub fn create_shader_binding_tables(&self) -> PipelineShaderBindingTables {
+        PipelineShaderBindingTables::new(&self.inner.device, self)
     }
 }

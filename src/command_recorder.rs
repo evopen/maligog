@@ -265,6 +265,31 @@ impl<'a> CommandRecorder<'a> {
             );
         }
     }
+
+    pub fn trace_ray(
+        &mut self,
+        raygen_shader_binding_table: &crate::ShaderBindingTable,
+        miss_shader_binding_table: &crate::ShaderBindingTable,
+        hit_shader_binding_table: &crate::ShaderBindingTable,
+        callable_shader_binding_table: &crate::ShaderBindingTable,
+        width: u32,
+        height: u32,
+        depth: u32,
+    ) {
+        unsafe {
+            self.device().ray_tracing_pipeline_loader().cmd_trace_rays(
+                self.command_buffer.handle,
+                &raygen_shader_binding_table.region,
+                &miss_shader_binding_table.region,
+                &hit_shader_binding_table.region,
+                &callable_shader_binding_table.region,
+                width,
+                height,
+                depth,
+            );
+        }
+    }
+
     fn device_handle(&self) -> &ash::Device {
         &self.command_buffer.device.inner.handle
     }

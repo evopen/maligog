@@ -11,7 +11,7 @@ pub(crate) struct RayTracingPipelineRef {
     pub(crate) ray_gen_shader: ShaderStage,
     pub(crate) miss_shaders: Vec<ShaderStage>,
     pub(crate) hit_groups: Vec<Box<dyn crate::HitGroup + 'static>>,
-    device: Device,
+    pub(crate) device: Device,
     pub(crate) shader_group_handles: Vec<u8>,
 }
 

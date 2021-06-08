@@ -57,7 +57,9 @@ pub use image_view::ImageView;
 pub use instance::Instance;
 pub use pipeline::{GraphicsPipeline, PipelineLayout, RayTracingPipeline};
 pub use ray_tracing::HitGroup;
-pub use ray_tracing::{ProceduralHitGroup, TrianglesHitGroup};
+pub use ray_tracing::{
+    PipelineShaderBindingTables, ProceduralHitGroup, ShaderBindingTable, TrianglesHitGroup,
+};
 pub use render_pass::RenderPass;
 pub use sampler::Sampler;
 pub use semaphore::{BinarySemaphore, TimelineSemaphore};
