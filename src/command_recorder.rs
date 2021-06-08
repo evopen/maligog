@@ -244,6 +244,27 @@ impl<'a> CommandRecorder<'a> {
         }
     }
 
+    pub fn blit_image(
+        &mut self,
+        src: &Image,
+        src_layout: vk::ImageLayout,
+        dst: &Image,
+        dst_layout: vk::ImageLayout,
+        regions: &[vk::ImageBlit],
+        filter: vk::Filter,
+    ) {
+        unsafe {
+            self.device().handle().cmd_blit_image(
+                self.command_buffer.handle,
+                src.handle(),
+                src_layout,
+                dst.handle(),
+                dst_layout,
+                regions,
+                filter,
+            );
+        }
+    }
     fn device_handle(&self) -> &ash::Device {
         &self.command_buffer.device.inner.handle
     }
