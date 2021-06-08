@@ -6,8 +6,8 @@ use crate::{Buffer, Device, RenderPass, ShaderStage};
 use ash::vk::{self, Handle};
 
 pub(crate) struct RayTracingPipelineRef {
-    handle: vk::Pipeline,
-    layout: PipelineLayout,
+    pub(crate) handle: vk::Pipeline,
+    pub(crate) layout: PipelineLayout,
     pub(crate) ray_gen_shader: ShaderStage,
     pub(crate) miss_shaders: Vec<ShaderStage>,
     pub(crate) hit_groups: Vec<Box<dyn crate::HitGroup + 'static>>,

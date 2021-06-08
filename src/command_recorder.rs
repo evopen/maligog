@@ -97,6 +97,23 @@ impl<'a> CommandRecorder<'a> {
         }
     }
 
+    pub fn bind_ray_tracing_pipeline<I>(&mut self, pipeline: &crate::RayTracingPipeline, f: I)
+    where
+        I: FnOnce(&mut CommandRecorder),
+    {
+        unsafe {
+            self.device().handle().cmd_bind_pipeline(
+                self.command_buffer.handle,
+                vk::PipelineBindPoint::RAY_TRACING_KHR,
+                pipeline.inner.handle,
+            );
+            self.bind_point = Some(vk::PipelineBindPoint::RAY_TRACING_KHR);
+            self.pipeline_layout = Some(pipeline.inner.layout.clone());
+            f(self);
+        }
+        // self.command_buffer.resources.push(pipeline);
+    }
+
     pub fn bind_graphics_pipeline<I>(&mut self, pipeline: &GraphicsPipeline, f: I)
     where
         I: FnOnce(&mut CommandRecorder),
