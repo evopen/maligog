@@ -49,7 +49,7 @@ impl Engine {
         let scene = maligog_gltf::Scene::from_file(
             Some("the scene"),
             &device,
-            "C:/Dev/rust/silly-cat-engine/cornell-box/models/CornellBox.glb",
+            std::env::var("CORNELL_BOX_GLTF").unwrap(),
         );
         let descriptor_pool = device.create_descriptor_pool(
             &[
