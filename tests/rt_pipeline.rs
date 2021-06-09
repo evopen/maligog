@@ -42,7 +42,7 @@ impl Engine {
             maligog::Format::R32G32B32A32_SFLOAT,
             800,
             600,
-            maligog::ImageUsageFlags::STORAGE,
+            maligog::ImageUsageFlags::STORAGE | maligog::ImageUsageFlags::TRANSFER_SRC,
             maligog::MemoryLocation::GpuOnly,
         );
         image.set_layout(
@@ -166,7 +166,7 @@ impl Engine {
             rec.blit_image(
                 &self.image,
                 maligog::ImageLayout::GENERAL,
-                &&present_img,
+                &present_img,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 &[vk::ImageBlit::builder()
                     .src_subresource(
@@ -240,14 +240,11 @@ fn test_rt_pipeline() {
                     _ => {}
                 }
             }
-            winit::event::Event::MainEventsCleared => {
-                win.request_redraw();
-            }
+            winit::event::Event::MainEventsCleared => win.request_redraw(),
             winit::event::Event::RedrawRequested(_) => {
                 engine.render();
             }
             _ => {}
         }
     });
-    engine.device.wait_idle();
 }
