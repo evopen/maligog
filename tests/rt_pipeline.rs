@@ -45,10 +45,7 @@ impl Engine {
             maligog::ImageUsageFlags::STORAGE | maligog::ImageUsageFlags::TRANSFER_SRC,
             maligog::MemoryLocation::GpuOnly,
         );
-        image.set_layout(
-            maligog::ImageLayout::UNDEFINED,
-            maligog::ImageLayout::GENERAL,
-        );
+
         let scene = maligog_gltf::Scene::from_file(
             Some("the scene"),
             &device,
@@ -140,10 +137,6 @@ impl Engine {
     pub fn render(&self) {
         let index = self.swapchain.acquire_next_image().unwrap();
         let present_img = self.swapchain.get_image(index);
-        // present_img.set_layout(
-        //     maligog::ImageLayout::UNDEFINED,
-        //     maligog::ImageLayout::GENERAL,
-        // );
 
         let mut cmd_buf = self.device.create_command_buffer(
             Some("main cmdbuf"),
@@ -206,10 +199,7 @@ impl Engine {
             );
         });
         self.device.graphics_queue().submit_blocking(&[cmd_buf]);
-        // present_img.set_layout(
-        //     maligog::ImageLayout::GENERAL,
-        //     maligog::ImageLayout::PRESENT_SRC_KHR,
-        // );
+
         self.swapchain
             .present(index, &[&self.swapchain.image_available_semaphore()]);
     }
