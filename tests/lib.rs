@@ -172,9 +172,10 @@ impl Engine {
                             gltf::import(std::path::PathBuf::from(&p).join(test_file)).unwrap();
                         let mut buffers = Vec::new();
                         gltf_buffers.iter().for_each(|data| {
+                            let slice: &[u8] = data.as_ref();
                             buffers.push(device.create_buffer_init(
                         Some("gltf buffer"),
-                        data.as_ref(),
+                        slice,
                         maligog::BufferUsageFlags::ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_KHR
                             | maligog::BufferUsageFlags::STORAGE_BUFFER,
                         maligog::MemoryLocation::GpuOnly,

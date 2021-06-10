@@ -95,12 +95,20 @@ impl Engine {
         let pipeline_layout =
             device.create_pipeline_layout(Some("pipeline layout"), &[&descriptor_set_layout], &[]);
 
-        // let rt_pipeline = device.create_ray_tracing_pipeline(Some("rt pipeline"), pipeline_layout);
-
         let surface = instance.create_surface(window);
         let swapchain = device.create_swapchain(surface, maligog::PresentModeKHR::FIFO);
 
-        let module = device.create_shader_module(simple_rt_shader::SPIRV);
+        let result =
+            spirv_builder::SpirvBuilder::new("../simple-rt-shader", "spirv-unknown-vulkan1.2")
+                .capability(spirv_builder::Capability::RayTracingKHR)
+                .capability(spirv_builder::Capability::ImageQuery)
+                .extension("SPV_KHR_ray_tracing")
+                .build()
+                .unwrap();
+        let module_path = result.module.unwrap_single();
+        let module = std::fs::read(module_path).unwrap();
+
+        let module = device.create_shader_module(module);
         let rg_stage =
             maligog::ShaderStage::new(&module, maligog::ShaderStageFlags::RAYGEN_KHR, "main");
         let hit_stage = maligog::ShaderStage::new(
