@@ -17,10 +17,19 @@ pub struct Sampler {
 }
 
 impl Sampler {
-    pub fn new(device: Device, name: Option<&str>) -> Self {
+    pub fn new(
+        device: Device,
+        name: Option<&str>,
+        mag_filter: vk::Filter,
+        min_filter: vk::Filter,
+        address_mode_u: vk::SamplerAddressMode,
+        address_mode_v: vk::SamplerAddressMode,
+    ) -> Self {
         let info = vk::SamplerCreateInfo::builder()
-            .mag_filter(vk::Filter::LINEAR)
-            .min_filter(vk::Filter::LINEAR)
+            .mag_filter(mag_filter)
+            .min_filter(min_filter)
+            .address_mode_u(address_mode_u)
+            .address_mode_v(address_mode_v)
             .build();
         unsafe {
             let handle = device.inner.handle.create_sampler(&info, None).unwrap();
@@ -39,8 +48,22 @@ impl Sampler {
 }
 
 impl Device {
-    pub fn create_sampler(&self, name: Option<&str>) -> Sampler {
-        Sampler::new(self.clone(), name)
+    pub fn create_sampler(
+        &self,
+        name: Option<&str>,
+        mag_filter: vk::Filter,
+        min_filter: vk::Filter,
+        address_mode_u: vk::SamplerAddressMode,
+        address_mode_v: vk::SamplerAddressMode,
+    ) -> Sampler {
+        Sampler::new(
+            self.clone(),
+            name,
+            mag_filter,
+            min_filter,
+            address_mode_u,
+            address_mode_v,
+        )
     }
 }
 

@@ -70,7 +70,8 @@ pub use swapchain::Swapchain;
 
 pub use ash::vk;
 pub use ash::vk::{
-    BufferUsageFlags, DescriptorPoolSize, Format, ImageLayout, ImageUsageFlags, IndexType,
-    PresentModeKHR, ShaderStageFlags,
+    BufferUsageFlags, ClearColorValue, DescriptorPoolSize, Filter, Format, ImageLayout,
+    ImageUsageFlags, IndexType, PhysicalDeviceType, PresentModeKHR, SamplerAddressMode,
+    ShaderStageFlags,
 };
 pub use gpu_allocator::MemoryLocation;
