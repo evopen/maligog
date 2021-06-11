@@ -114,6 +114,10 @@ impl Device {
                 vk::PhysicalDeviceScalarBlockLayoutFeatures::builder()
                     .scalar_block_layout(true)
                     .build();
+            let mut shader_float16_int8_pnext =
+                vk::PhysicalDeviceShaderFloat16Int8Features::builder()
+                    .shader_int8(true)
+                    .build();
 
             let vk_device_features = vk::PhysicalDeviceFeatures {
                 shader_storage_image_write_without_format: vk::TRUE,
@@ -149,7 +153,8 @@ impl Device {
                 .push_next(&mut device_buffer_address_pnext)
                 .push_next(&mut fea_16_bit_storage_pnext)
                 .push_next(&mut scalar_block_layout_pnext)
-                .push_next(&mut vulkan_memory_model_pnext);
+                .push_next(&mut vulkan_memory_model_pnext)
+                .push_next(&mut shader_float16_int8_pnext);
 
             let handle = instance
                 .inner
