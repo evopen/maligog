@@ -21,9 +21,9 @@ impl GraphicsPipeline {
     pub fn new(
         name: Option<&str>,
         device: &Device,
-        layout: PipelineLayout,
+        layout: &PipelineLayout,
         stages: Vec<ShaderStage>,
-        render_pass: RenderPass,
+        render_pass: &RenderPass,
         vertex_input_state: &vk::PipelineVertexInputStateCreateInfo,
         input_assembly_state: &vk::PipelineInputAssemblyStateCreateInfo,
         rasterization_state: &vk::PipelineRasterizationStateCreateInfo,
@@ -66,9 +66,9 @@ impl GraphicsPipeline {
                 inner: Arc::new(GraphicsPipelineRef {
                     handle,
                     device: device.clone(),
-                    layout,
+                    layout: layout.clone(),
                     stages,
-                    render_pass,
+                    render_pass: render_pass.clone(),
                 }),
             }
         }
@@ -87,9 +87,9 @@ impl Device {
     pub fn create_graphics_pipeline(
         &self,
         name: Option<&str>,
-        layout: PipelineLayout,
+        layout: &PipelineLayout,
         stages: Vec<ShaderStage>,
-        render_pass: RenderPass,
+        render_pass: &RenderPass,
         vertex_input_state: &vk::PipelineVertexInputStateCreateInfo,
         input_assembly_state: &vk::PipelineInputAssemblyStateCreateInfo,
         rasterization_state: &vk::PipelineRasterizationStateCreateInfo,
