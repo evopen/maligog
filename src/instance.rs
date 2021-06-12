@@ -34,6 +34,10 @@ unsafe extern "system" fn vulkan_debug_callback(
         log::debug!("suppress device address validation");
         return vk::FALSE;
     }
+    if message_id_number == 1303270965 || message_id_number == -243358461 {
+        log::debug!("suppress invalid image layout");
+        return vk::FALSE;
+    }
 
     use vk::DebugUtilsMessageSeverityFlagsEXT;
     match message_severity {
