@@ -59,6 +59,14 @@ impl ImageView {
     pub fn image(&self) -> Image {
         self.inner.image.clone()
     }
+
+    pub fn width(&self) -> u32 {
+        self.image().width()
+    }
+
+    pub fn height(&self) -> u32 {
+        self.image().height()
+    }
 }
 
 impl Drop for ImageViewRef {
