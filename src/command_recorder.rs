@@ -152,6 +152,18 @@ impl<'a> CommandRecorder<'a> {
         //     .for_each(|set| self.command_buffer.resources.push(set));
     }
 
+    pub fn push_constants(&self, stage: vk::ShaderStageFlags, constants: &[u8]) {
+        unsafe {
+            self.device().handle().cmd_push_constants(
+                self.command_buffer.handle,
+                self.pipeline_layout.as_ref().unwrap().inner.handle,
+                stage,
+                0,
+                constants,
+            )
+        }
+    }
+
     pub fn set_scissor(&self, scissors: &[vk::Rect2D]) {
         unsafe {
             self.device()
