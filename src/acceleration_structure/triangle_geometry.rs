@@ -73,4 +73,12 @@ impl TriangleGeometry {
             build_range_info,
         }
     }
+
+    pub fn index_buffer_view(&self) -> &crate::IndexBufferView {
+        &self.index_buffer_view
+    }
+
+    pub fn vertex_buffer_view(&self) -> &crate::VertexBufferView {
+        &self.vertex_buffer_view
+    }
 }

@@ -59,4 +59,8 @@ impl InstanceGeometry {
     pub fn instance_count(&self) -> u32 {
         self.blas_instances.len() as u32
     }
+
+    pub fn blas_instances(&self) -> &[crate::BLASInstance] {
+        &self.blas_instances
+    }
 }

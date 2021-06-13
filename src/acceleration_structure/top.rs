@@ -141,6 +141,10 @@ impl TopAccelerationStructure {
     pub fn name(&self) -> &Option<String> {
         &self.inner.name
     }
+
+    pub fn geometries(&self) -> &Vec<crate::InstanceGeometry> {
+        &self.inner.geometries
+    }
 }
 
 impl Device {

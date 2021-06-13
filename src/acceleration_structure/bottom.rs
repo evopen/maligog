@@ -138,6 +138,10 @@ impl BottomAccelerationStructure {
     pub fn name(&self) -> &Option<String> {
         &self.inner.name
     }
+
+    pub fn geometries(&self) -> &Vec<crate::TriangleGeometry> {
+        &self.inner.geometries
+    }
 }
 
 impl Device {

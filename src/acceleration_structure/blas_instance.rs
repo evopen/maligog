@@ -64,4 +64,8 @@ impl BLASInstance {
         );
         self.instance_buffer = Some(instance_buffer);
     }
+
+    pub fn blas(&self) -> &crate::BottomAccelerationStructure {
+        &self.blas
+    }
 }
