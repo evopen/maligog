@@ -24,9 +24,9 @@ impl RayTracingPipeline {
     pub fn new(
         name: Option<&str>,
         device: &Device,
-        layout: PipelineLayout,
+        layout: &PipelineLayout,
         ray_gen_shader: &ShaderStage,
-        miss_shaders: &[ShaderStage],
+        miss_shaders: &[&ShaderStage],
         hit_groups: &[&dyn crate::HitGroup],
         recursion_depth: u32,
     ) -> Self {
@@ -137,13 +137,18 @@ impl RayTracingPipeline {
                 )
                 .unwrap();
 
+            let miss_shaders = miss_shaders
+                .iter()
+                .map(|s| s.to_owned().to_owned())
+                .collect();
+
             Self {
                 inner: Arc::new(RayTracingPipelineRef {
                     handle,
-                    layout,
+                    layout: layout.to_owned(),
                     device: device.clone(),
                     ray_gen_shader: ray_gen_shader.to_owned(),
-                    miss_shaders: miss_shaders.to_owned(),
+                    miss_shaders,
                     hit_groups: hit_groups
                         .iter()
                         .map(|g| dyn_clone::clone_box(*g))
@@ -167,9 +172,9 @@ impl Device {
     pub fn create_ray_tracing_pipeline(
         &self,
         name: Option<&str>,
-        layout: PipelineLayout,
+        layout: &PipelineLayout,
         ray_gen_shader: &ShaderStage,
-        miss_shaders: &[ShaderStage],
+        miss_shaders: &[&ShaderStage],
         hit_groups: &[&dyn crate::HitGroup],
         recursion_depth: u32,
     ) -> RayTracingPipeline {
