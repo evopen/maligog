@@ -180,7 +180,7 @@ impl<'a> CommandRecorder<'a> {
         }
     }
 
-    pub fn bind_index_buffer(&mut self, buffer: Buffer, offset: u64, index_type: vk::IndexType) {
+    pub fn bind_index_buffer(&mut self, buffer: &Buffer, offset: u64, index_type: vk::IndexType) {
         unsafe {
             self.device().handle().cmd_bind_index_buffer(
                 self.command_buffer.handle,
@@ -192,7 +192,7 @@ impl<'a> CommandRecorder<'a> {
         // self.command_buffer.resources.push(buffer);
     }
 
-    pub fn bind_vertex_buffers(&mut self, buffers: Vec<Buffer>, offsets: &[u64]) {
+    pub fn bind_vertex_buffers(&mut self, buffers: &[&Buffer], offsets: &[u64]) {
         let buffer_handles = buffers.iter().map(|b| b.inner.handle).collect::<Vec<_>>();
         unsafe {
             self.device().handle().cmd_bind_vertex_buffers(

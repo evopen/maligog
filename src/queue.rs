@@ -60,16 +60,28 @@ impl Queue {
                 .unwrap();
 
             let lock = self.inner.lock.lock().unwrap();
-            self.inner
-                .synchronization2_loader
-                .queue_submit2(
-                    self.inner.handle,
-                    &[vk::SubmitInfo2KHR::builder()
-                        .command_buffer_infos(&command_buffer_submit_infos)
-                        .build()],
-                    fence_handle,
-                )
-                .unwrap();
+            // self.inner
+            //     .synchronization2_loader
+            //     .queue_submit2(
+            //         self.inner.handle,
+            //         &[vk::SubmitInfo2KHR::builder()
+            //             .command_buffer_infos(&command_buffer_submit_infos)
+            //             .build()],
+            //         fence_handle,
+            //     )
+            //     .unwrap();
+
+            let command_buffer_handles = command_buffers
+                .iter()
+                .map(|cmd_buf| cmd_buf.handle)
+                .collect::<Vec<_>>();
+            self.inner.device.queue_submit(
+                self.inner.handle,
+                &[vk::SubmitInfo::builder()
+                    .command_buffers(&command_buffer_handles)
+                    .build()],
+                fence_handle,
+            );
 
             self.inner
                 .device
