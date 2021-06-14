@@ -98,7 +98,13 @@ impl Engine {
                 .build()],
             1,
         );
-        let sampler = device.create_sampler(Some("sampler"));
+        let sampler = device.create_sampler(
+            Some("sampler"),
+            maligog::Filter::LINEAR,
+            maligog::Filter::LINEAR,
+            maligog::SamplerAddressMode::CLAMP_TO_EDGE,
+            maligog::SamplerAddressMode::CLAMP_TO_EDGE,
+        );
         let image = device.create_image(
             Some("this is an image"),
             vk::Format::B8G8R8A8_UNORM,

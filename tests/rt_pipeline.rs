@@ -121,9 +121,9 @@ impl Engine {
         let tri_hg = maligog::TrianglesHitGroup::new(&hit_stage, None);
         let pipeline = device.create_ray_tracing_pipeline(
             Some("a rt pipeline"),
-            pipeline_layout,
+            &pipeline_layout,
             &rg_stage,
-            &[miss_stage],
+            &[&miss_stage],
             &[&tri_hg],
             30,
         );
