@@ -2,7 +2,7 @@ use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::ffi::CString;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use ash::vk;
 use ash::vk::Handle;
@@ -173,7 +173,7 @@ impl DescriptorSetRef {
 
 #[derive(Clone)]
 pub struct DescriptorSet {
-    pub(crate) inner: Arc<DescriptorSetRef>,
+    pub(crate) inner: Arc<Mutex<DescriptorSetRef>>,
 }
 
 impl DescriptorSet {
@@ -184,20 +184,24 @@ impl DescriptorSet {
         descriptor_set_layout: &DescriptorSetLayout,
     ) -> Self {
         Self {
-            inner: Arc::new(DescriptorSetRef::new(
+            inner: Arc::new(Mutex::new(DescriptorSetRef::new(
                 device,
                 name,
                 descriptor_pool,
                 descriptor_set_layout,
-            )),
+            ))),
         }
+    }
+
+    pub fn update(&self, update_infos: BTreeMap<u32, DescriptorUpdate>) {
+        self.inner.lock().unwrap().update(update_infos);
     }
 }
 
 impl std::fmt::Debug for DescriptorSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DescriptorSet")
-            .field("handle", &self.inner.handle)
+            .field("handle", &self.inner.lock().unwrap().handle)
             .finish()
     }
 }
@@ -248,7 +252,7 @@ impl Device {
             descriptor_infos,
         );
         DescriptorSet {
-            inner: Arc::new(descriptor_set_ref),
+            inner: Arc::new(Mutex::new(descriptor_set_ref)),
         }
     }
 }
