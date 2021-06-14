@@ -135,7 +135,7 @@ impl<'a> CommandRecorder<'a> {
         unsafe {
             let descriptor_set_handles = descriptor_sets
                 .iter()
-                .map(|set| set.inner.handle)
+                .map(|set| set.inner.lock().unwrap().handle)
                 .collect::<Vec<_>>();
             self.device().handle().cmd_bind_descriptor_sets(
                 self.command_buffer.handle,
