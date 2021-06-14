@@ -34,7 +34,11 @@ unsafe extern "system" fn vulkan_debug_callback(
         log::debug!("suppress device address validation");
         return vk::FALSE;
     }
-    if message_id_number == 1303270965 || message_id_number == -243358461 {
+    if message_id_number == 1303270965
+        || message_id_number == -243358461
+        || message_id_number == 169239225
+        || message_id_number == 1287084845
+    {
         log::debug!("suppress invalid image layout");
         return vk::FALSE;
     }
@@ -48,7 +52,7 @@ unsafe extern "system" fn vulkan_debug_callback(
             log::warn!("{:?} : {}\n", message_type, message,);
         }
         DebugUtilsMessageSeverityFlagsEXT::ERROR => {
-            log::error!("{:?} : {}\n", message_type, message,);
+            log::error!("{:?} {} : {}\n", message_type, message_id_number, message,);
         }
         DebugUtilsMessageSeverityFlagsEXT::INFO => {
             log::info!("{:?} : {}\n", message_type, message,);
