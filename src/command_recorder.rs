@@ -251,6 +251,17 @@ impl<'a> CommandRecorder<'a> {
         );
     }
 
+    pub fn copy_image(
+        &mut self,
+        src: &crate::Image,
+        dst: &crate::Image,
+        regions: &[vk::ImageCopy],
+    ) {
+        unsafe {
+            self.copy_image_raw(src.handle(), dst.handle(), regions);
+        }
+    }
+
     pub(crate) fn pipeline_barrier(&mut self, dependency_info: &vk::DependencyInfoKHR) {
         unsafe {
             self.device()
@@ -269,6 +280,24 @@ impl<'a> CommandRecorder<'a> {
                 self.command_buffer.handle,
                 attachments,
                 rects,
+            );
+        }
+    }
+
+    pub fn clear_color_image(&mut self, image: &crate::Image, clear_color: &vk::ClearColorValue) {
+        unsafe {
+            self.device().handle().cmd_clear_color_image(
+                self.command_buffer.handle,
+                image.handle(),
+                vk::ImageLayout::GENERAL,
+                clear_color,
+                &[vk::ImageSubresourceRange::builder()
+                    .aspect_mask(vk::ImageAspectFlags::COLOR)
+                    .base_array_layer(0)
+                    .base_mip_level(0)
+                    .layer_count(1)
+                    .level_count(1)
+                    .build()],
             );
         }
     }
