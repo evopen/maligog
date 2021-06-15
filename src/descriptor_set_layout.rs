@@ -31,17 +31,18 @@ impl DescriptorSetLayout {
         name: Option<&str>,
         bindings: &[DescriptorSetLayoutBinding],
     ) -> Self {
+        let mut immutable_samplers = Vec::new();
         let vk_bindings = bindings
             .iter()
             .map(|binding| {
                 match &binding.descriptor_type {
                     DescriptorType::Sampler(immutable_sampler) => {
                         if let Some(sampler) = immutable_sampler {
+                            immutable_samplers.push(sampler.inner.handle);
                             vk::DescriptorSetLayoutBinding::builder()
                                 .binding(binding.binding)
                                 .descriptor_type(vk::DescriptorType::SAMPLER)
-                                .descriptor_count(binding.descriptor_count)
-                                .immutable_samplers(&[sampler.inner.handle])
+                                .immutable_samplers(&immutable_samplers)
                                 .stage_flags(binding.stage_flags)
                                 .build()
                         } else {
