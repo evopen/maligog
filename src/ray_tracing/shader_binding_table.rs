@@ -4,13 +4,19 @@ use std::sync::Arc;
 use crate::{Buffer, Device, RenderPass, ShaderStage};
 use ash::vk::{self, Handle};
 
+pub trait ShaderBindingTables {
+    fn ray_gen_table(&self) -> ShaderBindingTable;
+    fn miss_table(&self) -> ShaderBindingTable;
+    fn hit_table(&self) -> ShaderBindingTable;
+    fn callable_table(&self) -> ShaderBindingTable;
+}
+
 pub struct ShaderBindingTable {
-    parent: PipelineShaderBindingTables,
+    parent: Box<dyn ShaderBindingTables>,
     pub(crate) region: vk::StridedDeviceAddressRegionKHR,
 }
 
-#[derive(Clone)]
-pub struct PipelineShaderBindingTables {
+pub(crate) struct PipelineShaderBindingTablesRef {
     rt_pipeline: crate::RayTracingPipeline,
     sbt_buffer: Buffer,
     ray_tracing_pipeline: crate::RayTracingPipeline,
@@ -20,13 +26,17 @@ pub struct PipelineShaderBindingTables {
     callable_table: vk::StridedDeviceAddressRegionKHR,
 }
 
+#[derive(Clone)]
+pub struct PipelineShaderBindingTables {
+    inner: Arc<PipelineShaderBindingTablesRef>,
+}
+
 impl PipelineShaderBindingTables {
-    pub fn new(device: &Device, pipeline: &crate::RayTracingPipeline) -> Self {
+    pub fn new(device: &Device, pipeline: &crate::RayTracingPipeline, hit_groups: &[u32]) -> Self {
         let rt_p = &device.inner.pdevice.ray_tracing_pipeline_properties;
         let sbt_base_alignment = rt_p.shader_group_base_alignment as usize;
         let handle_size = rt_p.shader_group_handle_size as usize;
-        let sbt_buffer_size =
-            sbt_base_alignment * 2 + pipeline.inner.hit_groups.len() * handle_size;
+        let sbt_buffer_size = sbt_base_alignment * 2 + hit_groups.len() * handle_size;
         let mut sbt_buffer_data = vec![0; sbt_buffer_size];
         //raygen
         sbt_buffer_data[0..handle_size]
@@ -39,13 +49,16 @@ impl PipelineShaderBindingTables {
                     [handle_size..handle_size + handle_size * miss_group_count],
             );
         // hit group
-        let hit_group_count = pipeline.inner.hit_groups.len();
-        sbt_buffer_data
-            [2 * sbt_base_alignment..2 * sbt_base_alignment + handle_size * hit_group_count]
-            .copy_from_slice(
-                &pipeline.inner.shader_group_handles
-                    [2 * handle_size..2 * handle_size + handle_size * hit_group_count],
-            );
+        let hit_group_count = hit_groups.len();
+        for (i, hit_group) in hit_groups.iter().enumerate() {
+            sbt_buffer_data[(2 * sbt_base_alignment + i * handle_size)
+                ..(2 * sbt_base_alignment + (i + 1) * handle_size)]
+                .copy_from_slice(
+                    &pipeline.inner.shader_group_handles[(2 + *hit_group as usize) * handle_size
+                        ..(2 + *hit_group as usize + 1) * handle_size],
+                )
+        }
+
         let sbt_buffer = device.create_buffer_init(
             Some("sbt buffer"),
             sbt_buffer_data,
@@ -71,44 +84,51 @@ impl PipelineShaderBindingTables {
             .build();
         let callable_table = vk::StridedDeviceAddressRegionKHR::default();
         Self {
-            rt_pipeline: pipeline.clone(),
-            sbt_buffer,
-            ray_tracing_pipeline: pipeline.to_owned(),
-            raygen_table: ray_gen_table,
-            miss_table,
-            hit_table,
-            callable_table,
+            inner: Arc::new(PipelineShaderBindingTablesRef {
+                rt_pipeline: pipeline.clone(),
+                sbt_buffer,
+                ray_tracing_pipeline: pipeline.to_owned(),
+                raygen_table: ray_gen_table,
+                miss_table,
+                hit_table,
+                callable_table,
+            }),
+        }
+    }
+}
+
+impl ShaderBindingTables for PipelineShaderBindingTables {
+    fn ray_gen_table(&self) -> ShaderBindingTable {
+        ShaderBindingTable {
+            parent: Box::new(self.clone()),
+            region: self.inner.raygen_table,
         }
     }
 
-    pub fn get_raygen_table(&self) -> ShaderBindingTable {
+    fn miss_table(&self) -> ShaderBindingTable {
         ShaderBindingTable {
-            parent: self.clone(),
-            region: self.raygen_table,
+            parent: Box::new(self.clone()),
+            region: self.inner.miss_table,
         }
     }
-    pub fn get_miss_table(&self) -> ShaderBindingTable {
+
+    fn hit_table(&self) -> ShaderBindingTable {
         ShaderBindingTable {
-            parent: self.clone(),
-            region: self.miss_table,
+            parent: Box::new(self.clone()),
+            region: self.inner.hit_table,
         }
     }
-    pub fn get_hit_table(&self) -> ShaderBindingTable {
+
+    fn callable_table(&self) -> ShaderBindingTable {
         ShaderBindingTable {
-            parent: self.clone(),
-            region: self.hit_table,
-        }
-    }
-    pub fn get_callable_table(&self) -> ShaderBindingTable {
-        ShaderBindingTable {
-            parent: self.clone(),
-            region: self.callable_table,
+            parent: Box::new(self.clone()),
+            region: self.inner.callable_table,
         }
     }
 }
 
 impl crate::RayTracingPipeline {
-    pub fn create_shader_binding_tables(&self) -> PipelineShaderBindingTables {
-        PipelineShaderBindingTables::new(&self.inner.device, self)
+    pub fn create_shader_binding_tables(&self, hit_groups: &[u32]) -> PipelineShaderBindingTables {
+        PipelineShaderBindingTables::new(&self.inner.device, self, hit_groups)
     }
 }

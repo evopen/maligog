@@ -41,6 +41,7 @@ unsafe extern "system" fn vulkan_debug_callback(
         || message_id_number == -564812795
         || message_id_number == -1536361367
         || message_id_number == -945112042
+        || message_id_number == -1127038373
     {
         log::debug!("suppress invalid image layout");
         return vk::FALSE;
