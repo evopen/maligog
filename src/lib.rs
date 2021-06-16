@@ -58,8 +58,7 @@ pub use instance::Instance;
 pub use pipeline::{GraphicsPipeline, PipelineLayout, RayTracingPipeline};
 pub use ray_tracing::HitGroup;
 pub use ray_tracing::{
-    PipelineShaderBindingTables, ProceduralHitGroup, ShaderBindingTable, ShaderBindingTables,
-    TrianglesHitGroup,
+    ProceduralHitGroup, ShaderBindingTable, ShaderBindingTables, TrianglesHitGroup,
 };
 pub use render_pass::RenderPass;
 pub use sampler::Sampler;
