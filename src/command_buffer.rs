@@ -13,6 +13,8 @@ pub trait CommandBufferResource {}
 
 impl CommandBufferResource for crate::Framebuffer {}
 impl CommandBufferResource for crate::RenderPass {}
+impl CommandBufferResource for crate::ShaderBindingTables {}
+impl CommandBufferResource for crate::Buffer {}
 
 pub struct CommandBuffer {
     pub(crate) device: Device,

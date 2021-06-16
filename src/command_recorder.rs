@@ -346,6 +346,9 @@ impl<'a> CommandRecorder<'a> {
                 depth,
             );
         }
+        self.command_buffer
+            .resources
+            .push(Box::new(raygen_shader_binding_table.sbt_buffer.clone()));
     }
 
     fn device_handle(&self) -> &ash::Device {
