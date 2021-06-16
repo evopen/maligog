@@ -17,6 +17,7 @@ pub struct InstanceGeometry {
 
 impl InstanceGeometry {
     pub fn new(device: &Device, blas_instances: &[super::BLASInstance]) -> Self {
+        assert!(blas_instances.len() != 0);
         let instance_buffer_addresses: Vec<u64> = blas_instances
             .iter()
             .map(|i| i.instance_buffer.as_ref().unwrap().device_address())
