@@ -118,6 +118,15 @@ impl Device {
                 vk::PhysicalDeviceShaderFloat16Int8Features::builder()
                     .shader_int8(true)
                     .build();
+            let mut descriptor_indexing_pnext =
+                vk::PhysicalDeviceDescriptorIndexingFeatures::builder()
+                    .runtime_descriptor_array(true)
+                    .descriptor_binding_variable_descriptor_count(true)
+                    .shader_storage_image_array_non_uniform_indexing(true)
+                    .shader_sampled_image_array_non_uniform_indexing(true)
+                    .shader_storage_buffer_array_non_uniform_indexing(true)
+                    .shader_uniform_buffer_array_non_uniform_indexing(true)
+                    .build();
 
             let vk_device_features = vk::PhysicalDeviceFeatures {
                 shader_storage_image_write_without_format: vk::TRUE,
@@ -155,7 +164,8 @@ impl Device {
                 .push_next(&mut fea_16_bit_storage_pnext)
                 .push_next(&mut scalar_block_layout_pnext)
                 .push_next(&mut vulkan_memory_model_pnext)
-                .push_next(&mut shader_float16_int8_pnext);
+                .push_next(&mut shader_float16_int8_pnext)
+                .push_next(&mut descriptor_indexing_pnext);
 
             let handle = instance
                 .inner
