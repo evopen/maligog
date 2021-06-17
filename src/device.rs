@@ -138,6 +138,8 @@ impl Device {
                 shader_storage_image_write_without_format: vk::TRUE,
                 shader_storage_image_read_without_format: vk::TRUE,
                 fill_mode_non_solid: vk::TRUE,
+                shader_int16: vk::TRUE,
+                shader_int64: vk::TRUE,
                 ..Default::default()
             };
 
