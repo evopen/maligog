@@ -122,10 +122,16 @@ impl Device {
                 vk::PhysicalDeviceDescriptorIndexingFeatures::builder()
                     .runtime_descriptor_array(true)
                     .descriptor_binding_variable_descriptor_count(true)
+                    .descriptor_binding_partially_bound(true)
+                    .descriptor_binding_update_unused_while_pending(true)
                     .shader_storage_image_array_non_uniform_indexing(true)
                     .shader_sampled_image_array_non_uniform_indexing(true)
                     .shader_storage_buffer_array_non_uniform_indexing(true)
                     .shader_uniform_buffer_array_non_uniform_indexing(true)
+                    .descriptor_binding_sampled_image_update_after_bind(true)
+                    .descriptor_binding_storage_image_update_after_bind(true)
+                    .descriptor_binding_storage_buffer_update_after_bind(true)
+                    .descriptor_binding_uniform_buffer_update_after_bind(false)
                     .build();
 
             let vk_device_features = vk::PhysicalDeviceFeatures {
