@@ -34,17 +34,26 @@ impl DescriptorSetRef {
         descriptor_pool: &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
     ) -> Self {
-        let mut variable_descriptor_count_alloc_info =
-            vk::DescriptorSetVariableDescriptorCountAllocateInfo::builder()
-                .descriptor_counts(&[descriptor_set_layout.variable_descriptor_count()])
-                .build();
-        let info = vk::DescriptorSetAllocateInfo::builder()
-            .set_layouts(&[descriptor_set_layout.inner.handle])
-            .descriptor_pool(descriptor_pool.inner.handle)
-            .push_next(&mut variable_descriptor_count_alloc_info)
-            .build();
+        let handle = vec![descriptor_set_layout.inner.handle];
+
+        let mut info = vk::DescriptorSetAllocateInfo::builder()
+            .set_layouts(&handle)
+            .descriptor_pool(descriptor_pool.inner.handle);
+
         unsafe {
-            let handles = device.handle().allocate_descriptor_sets(&info).unwrap();
+            let handles = if let Some(count) = descriptor_set_layout.variable_descriptor_count() {
+                let mut variable_descriptor_count_alloc_info =
+                    vk::DescriptorSetVariableDescriptorCountAllocateInfo::builder()
+                        .descriptor_counts(&[count])
+                        .build();
+                let info = info
+                    .push_next(&mut variable_descriptor_count_alloc_info)
+                    .build();
+                device.handle().allocate_descriptor_sets(&info).unwrap()
+            } else {
+                device.handle().allocate_descriptor_sets(&info).unwrap()
+            };
+
             assert_eq!(handles.len(), 1);
             let handle = handles.first().unwrap().to_owned();
             if let Some(name) = name {

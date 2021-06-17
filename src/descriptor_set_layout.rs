@@ -222,12 +222,12 @@ impl DescriptorSetLayout {
         }
     }
 
-    pub(crate) fn variable_descriptor_count(&self) -> u32 {
+    pub(crate) fn variable_descriptor_count(&self) -> Option<u32> {
         let last_binding = self.inner.bindings.last().unwrap();
         if !last_binding.variable_count {
-            0
+            None
         } else {
-            last_binding.descriptor_count
+            Some(last_binding.descriptor_count)
         }
     }
 }
