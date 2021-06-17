@@ -24,7 +24,10 @@ impl DescriptorPool {
             let info = vk::DescriptorPoolCreateInfo::builder()
                 .pool_sizes(descriptor_pool_size)
                 .max_sets(max_sets)
-                .flags(vk::DescriptorPoolCreateFlags::FREE_DESCRIPTOR_SET)
+                .flags(
+                    vk::DescriptorPoolCreateFlags::FREE_DESCRIPTOR_SET
+                        | vk::DescriptorPoolCreateFlags::UPDATE_AFTER_BIND,
+                )
                 .build();
             let handle = device
                 .inner
