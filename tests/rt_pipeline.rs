@@ -72,12 +72,14 @@ impl Engine {
                     descriptor_type: maligog::DescriptorType::AccelerationStructure,
                     stage_flags: maligog::ShaderStageFlags::RAYGEN_KHR,
                     descriptor_count: 1,
+                    variable_count: false,
                 },
                 maligog::DescriptorSetLayoutBinding {
                     binding: 1,
                     descriptor_type: maligog::DescriptorType::StorageImage,
                     stage_flags: maligog::ShaderStageFlags::RAYGEN_KHR,
                     descriptor_count: 1,
+                    variable_count: true,
                 },
             ],
         );

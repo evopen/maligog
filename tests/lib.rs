@@ -84,8 +84,9 @@ impl Engine {
             &[maligog::DescriptorSetLayoutBinding {
                 binding: 0,
                 descriptor_type: maligog::DescriptorType::UniformBuffer,
-                stage_flags: maligog::ShaderStageFlags::VERTEX,
+                stage_flags: maligog::ShaderStageFlags::ALL,
                 descriptor_count: 1,
+                variable_count: false,
             }],
         );
 
@@ -131,22 +132,28 @@ impl Engine {
         let swapchain = device.create_swapchain(surface, maligog::PresentModeKHR::FIFO);
         let descriptor_set_layout = device.create_descriptor_set_layout(
             Some("temp descriptor set layout"),
-            &[maligog::DescriptorSetLayoutBinding {
-                binding: 0,
-                descriptor_type: maligog::DescriptorType::StorageBuffer,
-                stage_flags: maligog::ShaderStageFlags::ALL_GRAPHICS,
-                descriptor_count: 2,
-            }],
+            &[
+                maligog::DescriptorSetLayoutBinding {
+                    binding: 0,
+                    descriptor_type: maligog::DescriptorType::StorageBuffer,
+                    stage_flags: maligog::ShaderStageFlags::ALL_GRAPHICS,
+                    descriptor_count: 2,
+                    variable_count: false,
+                },
+                maligog::DescriptorSetLayoutBinding {
+                    binding: 1,
+                    descriptor_type: maligog::DescriptorType::StorageImage,
+                    stage_flags: maligog::ShaderStageFlags::ALL_GRAPHICS,
+                    descriptor_count: 3,
+                    variable_count: true,
+                },
+            ],
         );
 
-        let descriptor_set = device.create_descriptor_set(
-            Some("temp descriptor set"),
+        let descriptor_set = device.allocate_descriptor_set(
+            Some("main descriptor set"),
             &descriptor_pool,
             &descriptor_set_layout,
-            btreemap! {
-                0 => maligog::DescriptorUpdate::Buffer(vec![BufferView{buffer: buffer3.clone(), offset: 0},
-                                                            BufferView{buffer: buffer2.clone(), offset: 0}]),
-            },
         );
 
         let mut tlases = Vec::new();
