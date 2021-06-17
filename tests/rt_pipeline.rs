@@ -21,7 +21,7 @@ struct Engine {
     swapchain: maligog::Swapchain,
     descriptor_set: maligog::DescriptorSet,
     pipeline: maligog::RayTracingPipeline,
-    shader_binding_tables: maligog::PipelineShaderBindingTables,
+    shader_binding_tables: maligog::ShaderBindingTables,
 }
 
 impl Engine {
@@ -127,7 +127,7 @@ impl Engine {
             &[&tri_hg],
             30,
         );
-        let shader_binding_tables = pipeline.create_shader_binding_tables();
+        let shader_binding_tables = pipeline.create_shader_binding_tables(&[0]);
 
         device.wait_idle();
 
@@ -154,10 +154,10 @@ impl Engine {
             rec.bind_ray_tracing_pipeline(&self.pipeline, |rec| {
                 rec.bind_descriptor_sets(vec![&self.descriptor_set], 0);
                 rec.trace_ray(
-                    &self.shader_binding_tables.get_raygen_table(),
-                    &self.shader_binding_tables.get_miss_table(),
-                    &self.shader_binding_tables.get_hit_table(),
-                    &self.shader_binding_tables.get_callable_table(),
+                    &self.shader_binding_tables.ray_gen_table(),
+                    &self.shader_binding_tables.miss_table(),
+                    &self.shader_binding_tables.hit_table(),
+                    &self.shader_binding_tables.callable_table(),
                     self.image.width(),
                     self.image.height(),
                     1,
