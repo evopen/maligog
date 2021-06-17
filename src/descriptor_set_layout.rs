@@ -11,6 +11,7 @@ pub struct DescriptorSetLayoutBinding {
     pub descriptor_type: DescriptorType,
     pub stage_flags: vk::ShaderStageFlags,
     pub descriptor_count: u32,
+    pub variable_count: bool,
 }
 
 pub(crate) struct DescriptorSetLayoutRef {
@@ -32,11 +33,27 @@ impl DescriptorSetLayout {
         bindings: &[DescriptorSetLayoutBinding],
     ) -> Self {
         let mut immutable_samplers = Vec::new();
+        let mut binding_flags = Vec::new();
         let vk_bindings = bindings
             .iter()
             .map(|binding| {
                 match &binding.descriptor_type {
                     DescriptorType::Sampler(immutable_sampler) => {
+                        if binding.variable_count {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::VARIABLE_DESCRIPTOR_COUNT
+                                    | vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        } else {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        }
+
                         if let Some(sampler) = immutable_sampler {
                             immutable_samplers.push(sampler.inner.handle);
                             vk::DescriptorSetLayoutBinding::builder()
@@ -55,6 +72,20 @@ impl DescriptorSetLayout {
                         }
                     }
                     DescriptorType::SampledImage => {
+                        if binding.variable_count {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::VARIABLE_DESCRIPTOR_COUNT
+                                    | vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        } else {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        }
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
@@ -63,6 +94,18 @@ impl DescriptorSetLayout {
                             .build()
                     }
                     DescriptorType::UniformBuffer => {
+                        if binding.variable_count {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::VARIABLE_DESCRIPTOR_COUNT
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        } else {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        }
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
@@ -71,6 +114,20 @@ impl DescriptorSetLayout {
                             .build()
                     }
                     DescriptorType::StorageBuffer => {
+                        if binding.variable_count {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::VARIABLE_DESCRIPTOR_COUNT
+                                    | vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        } else {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        }
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
@@ -79,6 +136,20 @@ impl DescriptorSetLayout {
                             .build()
                     }
                     DescriptorType::AccelerationStructure => {
+                        if binding.variable_count {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::VARIABLE_DESCRIPTOR_COUNT
+                                    | vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        } else {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        }
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::ACCELERATION_STRUCTURE_KHR)
@@ -87,6 +158,20 @@ impl DescriptorSetLayout {
                             .build()
                     }
                     DescriptorType::StorageImage => {
+                        if binding.variable_count {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::VARIABLE_DESCRIPTOR_COUNT
+                                    | vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        } else {
+                            binding_flags.push(
+                                vk::DescriptorBindingFlags::UPDATE_AFTER_BIND
+                                    | vk::DescriptorBindingFlags::PARTIALLY_BOUND
+                                    | vk::DescriptorBindingFlags::UPDATE_UNUSED_WHILE_PENDING,
+                            );
+                        }
                         vk::DescriptorSetLayoutBinding::builder()
                             .binding(binding.binding)
                             .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
@@ -97,19 +182,27 @@ impl DescriptorSetLayout {
                 }
             })
             .collect::<Vec<_>>();
-        let info = vk::DescriptorSetLayoutCreateInfo::builder()
-            .bindings(vk_bindings.as_slice())
+
+        let mut binding_flags = vk::DescriptorSetLayoutBindingFlagsCreateInfo::builder()
+            .binding_flags(&binding_flags)
             .build();
+
+        let mut info = vk::DescriptorSetLayoutCreateInfo::builder()
+            .bindings(vk_bindings.as_slice())
+            .flags(vk::DescriptorSetLayoutCreateFlags::UPDATE_AFTER_BIND_POOL)
+            .push_next(&mut binding_flags);
         let vk_bindings = vk_bindings
             .iter()
             .map(|b| (b.binding, b.to_owned()))
             .collect::<BTreeMap<u32, vk::DescriptorSetLayoutBinding>>();
+
         unsafe {
             let handle = device
                 .inner
                 .handle
                 .create_descriptor_set_layout(&info, None)
                 .unwrap();
+
             if let Some(name) = name {
                 device.debug_set_object_name(
                     name,
@@ -126,6 +219,15 @@ impl DescriptorSetLayout {
                     vk_bindings,
                 }),
             }
+        }
+    }
+
+    pub(crate) fn variable_descriptor_count(&self) -> u32 {
+        let last_binding = self.inner.bindings.last().unwrap();
+        if !last_binding.variable_count {
+            0
+        } else {
+            last_binding.descriptor_count
         }
     }
 }
