@@ -212,6 +212,7 @@ impl Device {
                         log_frees: true,
                         log_stack_traces: false,
                     },
+                    buffer_device_address: true,
                 });
 
             let graphics_queue = Queue::new(

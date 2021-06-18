@@ -27,9 +27,9 @@ impl Entry {
         let version_str = match self.handle.try_enumerate_instance_version().unwrap() {
             // Vulkan 1.1+
             Some(version) => {
-                let major = vk::version_major(version);
-                let minor = vk::version_minor(version);
-                let patch = vk::version_patch(version);
+                let major = vk::api_version_major(version);
+                let minor = vk::api_version_minor(version);
+                let patch = vk::api_version_patch(version);
                 format!("{}.{}.{}", major, minor, patch)
             }
             // Vulkan 1.0

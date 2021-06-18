@@ -1,3 +1,5 @@
+#![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused))]
+
 #[global_allocator]
 static ALLOC: rpmalloc::RpMalloc = rpmalloc::RpMalloc;
 
@@ -292,7 +294,7 @@ impl Engine {
                                     &device,
                                     &blases.get(mesh.index()).unwrap(),
                                     &glam::Mat4::from_cols_array_2d(&node.transform().matrix()),
-                                    0
+                                    0,0
                                 ));
                             }
                             instances.extend(

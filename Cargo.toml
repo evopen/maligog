@@ -11,12 +11,12 @@ keywords = ["vulkan"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ash = { git = "https://github.com/MaikKlein/ash.git", rev = "9d6bf63b4e37f768b7cee85f9d82f4ac77b1fe22" }
-ash-window = { git = "https://github.com/MaikKlein/ash.git", rev = "9d6bf63b4e37f768b7cee85f9d82f4ac77b1fe22" }
+ash = { git = "https://github.com/MaikKlein/ash.git", rev = "a75d8e7e889bd75ac08f226539c04c7848823fcc" }
+ash-window = { git = "https://github.com/MaikKlein/ash.git", rev = "a75d8e7e889bd75ac08f226539c04c7848823fcc" }
 num-traits = "0.2.14"
-strum = "0.20.0"
-strum_macros = "0.20.1"
-gpu-allocator = { git = "https://github.com/evopen/gpu-allocator.git", branch = "main" }
+strum = "0.21.0"
+strum_macros = "0.21.0"
+gpu-allocator = { git = "https://github.com/evopen/gpu-allocator.git", rev = "aee7083f30b4752dff312665be3e9a1d023c6c86" }
 log = "0.4.14"
 thread_local = "1.1.3"
 bytemuck = "1.5.1"
@@ -39,7 +39,7 @@ maligog-gltf = { path = "../maligog-gltf" }
 
 [dev-dependencies.spirv-builder]
 git = "https://github.com/EmbarkStudios/rust-gpu"
-rev = "c3eff4d4a5a52607aa3bc8b4ba8409f6659425ee"
+rev = "8924fe7b4cc552cf764819a028d6c23ad983b3db"
 features = ["use-installed-tools"]
 default-features = false
 

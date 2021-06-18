@@ -30,10 +30,10 @@ unsafe extern "system" fn vulkan_debug_callback(
     } else {
         CStr::from_ptr(callback_data.p_message).to_string_lossy()
     };
-    if message_id_number == 1151829889 {
-        log::debug!("suppress device address validation");
-        return vk::FALSE;
-    }
+    // if message_id_number == 1151829889 {
+    //     log::debug!("suppress device address validation");
+    //     return vk::FALSE;
+    // }
     if message_id_number == 1303270965
         || message_id_number == -243358461
         || message_id_number == 169239225
@@ -101,7 +101,7 @@ impl Instance {
             .application_version(0)
             .engine_name(&engine_name)
             .engine_version(0)
-            .api_version(vk::make_version(1, 2, 0));
+            .api_version(vk::make_api_version(0, 1, 2, 0));
 
         let layer_names = layers
             .iter()
