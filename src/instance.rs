@@ -94,6 +94,7 @@ impl Instance {
         let engine_name = CString::new("maligog").unwrap();
 
         let mut extensions = extensions.to_owned();
+        let mut layers = layers.to_owned();
         extensions.push(crate::name::instance::Extension::ExtDebugUtils);
 
         let appinfo = vk::ApplicationInfo::builder()
@@ -113,7 +114,7 @@ impl Instance {
             .collect();
 
         let supported_layers = entry.supported_instance_layers();
-        for layer in layers {
+        for layer in &layers {
             if !supported_layers.contains(layer) {
                 panic!("not support layer {}", layer.as_ref());
             }

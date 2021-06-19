@@ -112,6 +112,7 @@ impl DescriptorSetRef {
                             .map(|v| Box::new(v.clone()) as Box<dyn Descriptor>)
                             .collect(),
                     );
+                    let index = buffer_infos.len();
                     for buffer_view in buffer_views {
                         buffer_infos.push(
                             vk::DescriptorBufferInfo::builder()
@@ -121,7 +122,7 @@ impl DescriptorSetRef {
                                 .build(),
                         );
                     }
-                    write_builder.buffer_info(&buffer_infos).build()
+                    write_builder.buffer_info(&buffer_infos[index..]).build()
                 }
                 DescriptorUpdate::Image(image_views) => {
                     self.resources.insert(
@@ -131,6 +132,7 @@ impl DescriptorSetRef {
                             .map(|v| Box::new(v.clone()) as Box<dyn Descriptor>)
                             .collect(),
                     );
+                    let index = image_infos.len();
                     for image_view in image_views {
                         image_infos.push(
                             vk::DescriptorImageInfo::builder()
@@ -139,17 +141,18 @@ impl DescriptorSetRef {
                                 .build(),
                         );
                     }
-                    write_builder.image_info(&image_infos).build()
+                    write_builder.image_info(&image_infos[index..]).build()
                 }
                 DescriptorUpdate::Sampler(sampler) => {
                     self.resources
                         .insert(*binding, vec![Box::new(sampler.clone())]);
+                    let index = image_infos.len();
                     image_infos.push(
                         vk::DescriptorImageInfo::builder()
                             .sampler(sampler.inner.handle)
                             .build(),
                     );
-                    write_builder.image_info(&image_infos).build()
+                    write_builder.image_info(&image_infos[index..]).build()
                 }
                 DescriptorUpdate::AccelerationStructure(acceleration_structures) => {
                     self.resources.insert(
@@ -159,12 +162,13 @@ impl DescriptorSetRef {
                             .map(|v| Box::new(v.clone()) as Box<dyn Descriptor>)
                             .collect(),
                     );
+                    let index = tlas_handles.len();
                     for acc_struct in acceleration_structures {
                         tlas_handles.push(acc_struct.inner.handle);
                     }
                     write_acceleration_structure = Some(
                         vk::WriteDescriptorSetAccelerationStructureKHR::builder()
-                            .acceleration_structures(tlas_handles.as_slice())
+                            .acceleration_structures(&tlas_handles[index..])
                             .build(),
                     );
                     let mut write = write_builder
