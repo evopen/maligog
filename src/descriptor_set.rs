@@ -143,15 +143,23 @@ impl DescriptorSetRef {
                     }
                     write_builder.image_info(&image_infos[index..]).build()
                 }
-                DescriptorUpdate::Sampler(sampler) => {
-                    self.resources
-                        .insert(*binding, vec![Box::new(sampler.clone())]);
-                    let index = image_infos.len();
-                    image_infos.push(
-                        vk::DescriptorImageInfo::builder()
-                            .sampler(sampler.inner.handle)
-                            .build(),
+                DescriptorUpdate::Sampler(samplers) => {
+                    self.resources.insert(
+                        *binding,
+                        samplers
+                            .iter()
+                            .map(|v| Box::new(v.clone()) as Box<dyn Descriptor>)
+                            .collect(),
                     );
+                    let index = image_infos.len();
+                    for sampler in samplers {
+                        image_infos.push(
+                            vk::DescriptorImageInfo::builder()
+                                .sampler(sampler.inner.handle)
+                                .build(),
+                        );
+                    }
+
                     write_builder.image_info(&image_infos[index..]).build()
                 }
                 DescriptorUpdate::AccelerationStructure(acceleration_structures) => {
@@ -227,7 +235,7 @@ impl std::fmt::Debug for DescriptorSet {
 pub enum DescriptorUpdate {
     Buffer(Vec<BufferView>), // buffer and offset
     Image(Vec<ImageView>),
-    Sampler(Sampler),
+    Sampler(Vec<Sampler>),
     AccelerationStructure(Vec<TopAccelerationStructure>),
 }
 
