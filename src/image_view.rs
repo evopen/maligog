@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ash::vk;
+use ash::vk::{self, Handle};
 
 use crate::{Device, Image};
 
@@ -46,6 +46,9 @@ impl ImageView {
                     None,
                 )
                 .unwrap();
+            if let Some(name) = &image.inner.name {
+                device.debug_set_object_name(name.as_str(), handle.as_raw(), vk::ObjectType::IMAGE_VIEW);
+            }
             Self {
                 inner: Arc::new(ImageViewRef {
                     image: image.clone(),

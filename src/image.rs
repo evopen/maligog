@@ -27,6 +27,7 @@ pub struct ImageRef {
     height: u32,
     layout: std::sync::atomic::AtomicI32,
     format: vk::Format,
+    pub name: Option<String>,
 }
 
 #[derive(Clone)]
@@ -120,6 +121,7 @@ impl Image {
                     layout,
                     image_type,
                     format,
+                    name: name.map(|s| s.to_owned()),
                 }),
             }
         }
@@ -337,6 +339,7 @@ impl Image {
                 height,
                 layout: std::sync::atomic::AtomicI32::new(vk::ImageLayout::UNDEFINED.as_raw()),
                 format,
+                name: None,
             }),
         }
     }
