@@ -85,11 +85,12 @@ impl DescriptorSetRef {
         let device = &self.device;
         let layout_bindings = &self.descriptor_set_layout.inner.vk_bindings;
 
-        let mut buffer_infos = Vec::new();
-        let mut image_infos = Vec::new();
-        let mut tlas_handles = Vec::new();
+        let reserve_size = update_infos.len();
+        let mut buffer_infos = Vec::with_capacity(reserve_size);
+        let mut image_infos = Vec::with_capacity(reserve_size);
+        let mut tlas_handles = Vec::with_capacity(reserve_size);
         let mut write_acceleration_structure = None;
-        let mut writes = Vec::new();
+        let mut writes = Vec::with_capacity(reserve_size);
 
         for (binding, info) in &update_infos {
             let mut write_builder = vk::WriteDescriptorSet::builder()
