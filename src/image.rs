@@ -430,6 +430,18 @@ impl Image {
         self.inner.height
     }
 
+    pub fn linear_size(&self) -> u64 {
+        let pixel_size = match self.format() {
+            crate::Format::R32_SFLOAT => 4,
+            crate::Format::R32G32B32A32_SFLOAT => 16,
+            crate::Format::B8G8R8A8_UNORM | crate::Format::R8G8B8A8_UNORM => 4,
+            _ => {
+                unimplemented!("{:?}", self.format());
+            }
+        };
+        (self.width() * self.height()) as u64 * pixel_size
+    }
+
     pub(crate) fn handle(&self) -> vk::Image {
         self.inner.handle
     }

@@ -262,6 +262,39 @@ impl<'a> CommandRecorder<'a> {
         }
     }
 
+    pub fn copy_image_to_buffer(
+        &mut self,
+        image: &crate::Image,
+        layout: vk::ImageLayout,
+        buffer: &crate::Buffer,
+    ) {
+        unsafe {
+            let row_length = self.device().handle().cmd_copy_image_to_buffer(
+                self.command_buffer.handle,
+                image.handle(),
+                layout,
+                buffer.handle(),
+                &[vk::BufferImageCopy {
+                    buffer_offset: 0,
+                    buffer_row_length: 0,
+                    buffer_image_height: image.height(),
+                    image_subresource: vk::ImageSubresourceLayers::builder()
+                        .base_array_layer(0)
+                        .layer_count(1)
+                        .aspect_mask(vk::ImageAspectFlags::COLOR)
+                        .mip_level(0)
+                        .build(),
+                    image_offset: vk::Offset3D::default(),
+                    image_extent: vk::Extent3D::builder()
+                        .width(image.width())
+                        .height(image.height())
+                        .depth(1)
+                        .build(),
+                }],
+            );
+        }
+    }
+
     pub(crate) fn pipeline_barrier(&mut self, dependency_info: &vk::DependencyInfoKHR) {
         unsafe {
             self.device()
