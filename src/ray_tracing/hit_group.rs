@@ -19,14 +19,18 @@ impl TrianglesHitGroup {
     }
 }
 #[derive(Clone)]
-pub struct ProceduralHitGroup {}
+pub struct ProceduralHitGroup {
+    closest_hit_shader: ShaderStage,
+    intersection_hit_shader: ShaderStage,
+    any_hit_shader: Option<ShaderStage>,
+}
 
 pub trait HitGroup: dyn_clone::DynClone + 'static {
     fn shader_stage_create_infos(&self) -> Vec<vk::PipelineShaderStageCreateInfo>;
     fn shader_group_type(&self) -> vk::RayTracingShaderGroupTypeKHR;
     fn has_closest_hit_shader(&self) -> bool;
     fn has_any_hit_shader(&self) -> bool;
-    fn has_intersection_hit_shader(&self) -> bool;
+    fn has_intersection_shader(&self) -> bool;
 }
 
 impl HitGroup for TrianglesHitGroup {
@@ -51,13 +55,19 @@ impl HitGroup for TrianglesHitGroup {
         self.any_hit_shader.is_some()
     }
 
-    fn has_intersection_hit_shader(&self) -> bool {
+    fn has_intersection_shader(&self) -> bool {
         false
     }
 }
 impl HitGroup for ProceduralHitGroup {
     fn shader_stage_create_infos(&self) -> Vec<vk::PipelineShaderStageCreateInfo> {
-        todo!()
+        let mut infos = Vec::new();
+        infos.push(self.closest_hit_shader.shader_stage_create_info());
+        infos.push(self.intersection_hit_shader.shader_stage_create_info());
+        if let Some(any_hit_shader) = self.any_hit_shader.as_ref() {
+            infos.push(any_hit_shader.shader_stage_create_info());
+        }
+        infos
     }
 
     fn shader_group_type(&self) -> vk::RayTracingShaderGroupTypeKHR {
@@ -65,14 +75,14 @@ impl HitGroup for ProceduralHitGroup {
     }
 
     fn has_closest_hit_shader(&self) -> bool {
-        todo!()
+        true
     }
 
     fn has_any_hit_shader(&self) -> bool {
-        todo!()
+        self.any_hit_shader.is_some()
     }
 
-    fn has_intersection_hit_shader(&self) -> bool {
-        todo!()
+    fn has_intersection_shader(&self) -> bool {
+        true
     }
 }
