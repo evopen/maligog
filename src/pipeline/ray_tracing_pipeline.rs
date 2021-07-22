@@ -83,14 +83,14 @@ impl RayTracingPipeline {
                     .ty(hit_group.shader_group_type())
                     .general_shader(vk::SHADER_UNUSED_KHR)
                     .closest_hit_shader(i)
-                    .any_hit_shader(match hit_group.has_any_hit_shader() {
+                    .intersection_shader(match hit_group.has_intersection_shader() {
                         true => {
                             i += 1;
                             i
                         }
                         false => vk::SHADER_UNUSED_KHR,
                     })
-                    .intersection_shader(match hit_group.has_any_hit_shader() {
+                    .any_hit_shader(match hit_group.has_any_hit_shader() {
                         true => {
                             i += 1;
                             i
