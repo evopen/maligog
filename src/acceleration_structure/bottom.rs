@@ -12,7 +12,6 @@ pub struct BottomAceelerationStructureRef {
     pub(crate) handle: vk::AccelerationStructureKHR,
     pub(crate) device_address: u64,
     device: Device,
-    geometries: Vec<super::TriangleGeometry>,
     as_buffer: crate::Buffer,
 }
 
@@ -24,15 +23,12 @@ pub struct BottomAccelerationStructure {
 impl BottomAccelerationStructure {
     pub(crate) fn new<I>(name: Option<&str>, device: &Device, geometries: &[I]) -> Self
     where
-        I: Borrow<super::TriangleGeometry>,
+        I: super::Geometry,
     {
-        let vk_geometries = geometries
-            .iter()
-            .map(|t| t.borrow().acceleration_structure_geometry)
-            .collect::<Vec<_>>();
+        let vk_geometries = geometries.iter().map(|t| t.geometry()).collect::<Vec<_>>();
         let triangle_counts = geometries
             .iter()
-            .map(|t| t.borrow().triangle_count)
+            .map(|t| t.primitives_count())
             .collect::<Vec<_>>();
         unsafe {
             let size_info = device
@@ -101,7 +97,7 @@ impl BottomAccelerationStructure {
 
             let build_range_infos = geometries
                 .iter()
-                .map(|t| t.borrow().build_range_info)
+                .map(|t| t.borrow().build_range_info())
                 .collect::<Vec<_>>();
 
             let mut cmd_buf = device.create_command_buffer(
@@ -128,7 +124,6 @@ impl BottomAccelerationStructure {
                     handle,
                     device_address,
                     device: device.clone(),
-                    geometries: geometries.into_iter().map(|a| a.borrow().clone()).collect(),
                     as_buffer,
                 }),
             }
@@ -139,9 +134,9 @@ impl BottomAccelerationStructure {
         &self.inner.name
     }
 
-    pub fn geometries(&self) -> &Vec<crate::TriangleGeometry> {
-        &self.inner.geometries
-    }
+    // pub fn geometries(&self) -> &Vec<crate::TriangleGeometry> {
+    //     &self.inner.geometries
+    // }
 }
 
 impl Device {
@@ -151,7 +146,7 @@ impl Device {
         geometries: &[I],
     ) -> BottomAccelerationStructure
     where
-        I: Borrow<super::TriangleGeometry>,
+        I: super::Geometry,
     {
         BottomAccelerationStructure::new(name, &self, geometries)
     }

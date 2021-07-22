@@ -17,6 +17,20 @@ pub struct TriangleGeometry {
     pub(crate) build_range_info: vk::AccelerationStructureBuildRangeInfoKHR,
 }
 
+impl super::Geometry for TriangleGeometry {
+    fn build_range_info(&self) -> vk::AccelerationStructureBuildRangeInfoKHR {
+        self.build_range_info
+    }
+
+    fn geometry(&self) -> vk::AccelerationStructureGeometryKHR {
+        self.acceleration_structure_geometry
+    }
+
+    fn primitives_count(&self) -> u32 {
+        self.triangle_count
+    }
+}
+
 impl TriangleGeometry {
     pub fn new(
         index_buffer_view: &crate::IndexBufferView,

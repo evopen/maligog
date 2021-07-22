@@ -12,13 +12,28 @@ pub struct AABBGeometry {
     pub(crate) build_range_info: vk::AccelerationStructureBuildRangeInfoKHR,
 }
 
+impl super::Geometry for AABBGeometry {
+    fn build_range_info(&self) -> vk::AccelerationStructureBuildRangeInfoKHR {
+        self.build_range_info
+    }
+
+    fn geometry(&self) -> vk::AccelerationStructureGeometryKHR {
+        self.acceleration_structure_geometry
+    }
+
+    fn primitives_count(&self) -> u32 {
+        1
+    }
+}
+
 impl AABBGeometry {
     pub fn new(positions_buffer_view: crate::BufferView, count: u32) -> Self {
         let mut aabbs_data = vk::AccelerationStructureGeometryAabbsDataKHR::builder()
             .data(vk::DeviceOrHostAddressConstKHR {
-                device_address: positions_buffer_view.buffer.device_address(),
+                device_address: positions_buffer_view.buffer.device_address()
+                    + positions_buffer_view.offset,
             })
-            .stride(16)
+            .stride(0)
             .build();
         let geometry = vk::AccelerationStructureGeometryKHR::builder()
             .geometry_type(vk::GeometryTypeKHR::AABBS)
