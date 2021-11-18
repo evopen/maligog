@@ -7,15 +7,15 @@ use std::sync::MutexGuard;
 use ash::vk;
 use ash::vk::Handle;
 
+use gpu_allocator::vulkan::*;
+
 use crate::buffer::Buffer;
 use crate::Device;
 use crate::Swapchain;
 use crate::TimelineSemaphore;
 
 enum ImageType {
-    Allocated {
-        allocation: Mutex<gpu_allocator::SubAllocation>,
-    },
+    Allocated { allocation: Mutex<Allocation> },
     FromHandle,
 }
 
@@ -82,7 +82,7 @@ impl Image {
                 .allocator
                 .lock()
                 .unwrap()
-                .allocate(&gpu_allocator::AllocationCreateDesc {
+                .allocate(&AllocationCreateDesc {
                     name: name.unwrap_or("default"),
                     requirements: device.inner.handle.get_image_memory_requirements(handle),
                     location: location,
@@ -201,7 +201,7 @@ impl Image {
         image
     }
 
-    pub fn lock_memory(&self) -> Option<LockResult<MutexGuard<gpu_allocator::SubAllocation>>> {
+    pub fn lock_memory(&self) -> Option<LockResult<MutexGuard<Allocation>>> {
         match &self.inner.image_type {
             ImageType::Allocated { allocation } => Some(allocation.lock()),
             ImageType::FromHandle => None,

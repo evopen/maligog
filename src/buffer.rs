@@ -4,6 +4,8 @@ use std::sync::LockResult;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
 
+use gpu_allocator::vulkan::*;
+
 use ash::vk::{self, Handle};
 
 use crate::device::Device;
@@ -12,7 +14,7 @@ pub(crate) struct BufferRef {
     name: Option<String>,
     pub(crate) device: Device,
     pub(crate) handle: vk::Buffer,
-    allocation: Mutex<gpu_allocator::SubAllocation>,
+    allocation: Mutex<Allocation>,
     device_address: vk::DeviceAddress,
     size: usize,
     location: gpu_allocator::MemoryLocation,
@@ -71,7 +73,7 @@ impl Buffer {
                 .allocator
                 .lock()
                 .unwrap()
-                .allocate(&gpu_allocator::AllocationCreateDesc {
+                .allocate(&AllocationCreateDesc {
                     name: name.unwrap_or("default"),
                     requirements: device.inner.handle.get_buffer_memory_requirements(handle),
                     location: location,
@@ -156,7 +158,7 @@ impl Buffer {
         buffer
     }
 
-    pub fn lock_memory(&self) -> LockResult<MutexGuard<gpu_allocator::SubAllocation>> {
+    pub fn lock_memory(&self) -> LockResult<MutexGuard<Allocation>> {
         self.inner.allocation.lock()
     }
 

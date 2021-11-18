@@ -6,6 +6,8 @@ use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use gpu_allocator::vulkan::*;
+
 use ash::vk;
 use thread_local::ThreadLocal;
 
@@ -29,7 +31,7 @@ pub(crate) struct DeviceRef {
     pub(crate) swapchain_loader: ash::extensions::khr::Swapchain,
     ray_tracing_pipeline_loader: ash::extensions::khr::RayTracingPipeline,
     synchronization2_loader: ash::extensions::khr::Synchronization2,
-    pub(crate) allocator: Mutex<ManuallyDrop<gpu_allocator::VulkanAllocator>>,
+    pub(crate) allocator: Mutex<ManuallyDrop<Allocator>>,
     graphics_queue: ManuallyDrop<Queue>,
     transfer_queue: ManuallyDrop<Queue>,
     compute_queue: ManuallyDrop<Queue>,
@@ -199,21 +201,21 @@ impl Device {
                 &handle,
             );
 
-            let allocator =
-                gpu_allocator::VulkanAllocator::new(&gpu_allocator::VulkanAllocatorCreateDesc {
-                    instance: instance.inner.handle.clone(),
-                    device: handle.clone(),
-                    physical_device: pdevice.handle,
-                    debug_settings: gpu_allocator::AllocatorDebugSettings {
-                        log_memory_information: false,
-                        log_leaks_on_shutdown: true,
-                        store_stack_traces: false,
-                        log_allocations: true,
-                        log_frees: true,
-                        log_stack_traces: false,
-                    },
-                    buffer_device_address: true,
-                });
+            let allocator = Allocator::new(&AllocatorCreateDesc {
+                instance: instance.inner.handle.clone(),
+                device: handle.clone(),
+                physical_device: pdevice.handle,
+                debug_settings: gpu_allocator::AllocatorDebugSettings {
+                    log_memory_information: false,
+                    log_leaks_on_shutdown: true,
+                    store_stack_traces: false,
+                    log_allocations: true,
+                    log_frees: true,
+                    log_stack_traces: false,
+                },
+                buffer_device_address: true,
+            })
+            .unwrap();
 
             let graphics_queue = Queue::new(
                 &handle,
